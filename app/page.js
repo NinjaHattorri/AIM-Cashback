@@ -1,0 +1,6 @@
+import { redirect } from 'next/navigation';
+
+export default function HomePage() {
+  redirect('/redeem');
+  return null; // Or a loading spinner, etc.
+}

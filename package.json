@@ -1,0 +1,25 @@
+{
+  "name": "qr-cashback-redemption",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookies-next": "^6.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.0.0",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "eslint": "latest",
+    "eslint-config-next": "latest"
+  }
+}

@@ -1,10 +1,12 @@
 'use client';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-import { useState } from 'react';
-
-export default function RedeemPage() {
+function RedeemForm() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState('details'); // 'details', 'otp', 'payment', 'complete'
   const [code, setCode] = useState('');
+  const [isCodeHardcoded, setIsCodeHardcoded] = useState(false);
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
@@ -19,6 +21,14 @@ export default function RedeemPage() {
   const [accountNumber, setAccountNumber] = useState('');
   const [ifscCode, setIfscCode] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
+
+  useEffect(() => {
+    const prefilledCode = searchParams.get('code');
+    if (prefilledCode) {
+      setCode(prefilledCode);
+      setIsCodeHardcoded(true);
+    }
+  }, [searchParams]);
 
   const handleDetailsSubmit = async (e) => {
     e.preventDefault();
@@ -136,7 +146,15 @@ export default function RedeemPage() {
           <form onSubmit={handleDetailsSubmit} style={styles.form}>
             <div style={styles.formGroup}>
               <label htmlFor="code" style={styles.label}>Cashback Code</label>
-              <input type="text" id="code" value={code} onChange={(e) => setCode(e.target.value)} required style={styles.input} />
+              <input 
+                type="text" 
+                id="code" 
+                value={code} 
+                onChange={(e) => setCode(e.target.value)} 
+                required 
+                style={{...styles.input, backgroundColor: isCodeHardcoded ? '#f0f0f0' : 'white'}} 
+                readOnly={isCodeHardcoded}
+              />
             </div>
             <div style={styles.formGroup}>
               <label htmlFor="name" style={styles.label}>Your Name</label>
@@ -217,6 +235,14 @@ export default function RedeemPage() {
         {renderStep()}
       </div>
     </div>
+  );
+}
+
+export default function RedeemPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RedeemForm />
+    </Suspense>
   );
 }
 

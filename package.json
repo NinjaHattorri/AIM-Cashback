@@ -12,6 +12,8 @@
     "bcryptjs": "^3.0.3",
     "cookies-next": "^6.1.1",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.0",
+    "jszip": "^3.10.1",
     "mongoose": "^8.0.0",
     "next": "latest",
     "qrcode": "^1.5.4",

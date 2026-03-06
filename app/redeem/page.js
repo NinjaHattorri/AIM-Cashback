@@ -144,18 +144,26 @@ function RedeemForm() {
       case 'details':
         return (
           <form onSubmit={handleDetailsSubmit} style={styles.form}>
-            <div style={styles.formGroup}>
-              <label htmlFor="code" style={styles.label}>Cashback Code</label>
-              <input 
-                type="text" 
-                id="code" 
-                value={code} 
-                onChange={(e) => setCode(e.target.value)} 
-                required 
-                style={{...styles.input, backgroundColor: isCodeHardcoded ? '#f0f0f0' : 'white'}} 
-                readOnly={isCodeHardcoded}
-              />
-            </div>
+            {/* ONLY SHOW CODE IF IT IS HARDCODED VIA QR SCAN */}
+            {isCodeHardcoded ? (
+              <div style={styles.formGroup}>
+                <label htmlFor="code" style={styles.label}>Cashback Code</label>
+                <input 
+                  type="text" 
+                  id="code" 
+                  value={code} 
+                  required 
+                  style={{...styles.input, backgroundColor: '#f0f0f0'}} 
+                  readOnly={true}
+                />
+              </div>
+            ) : (
+                <div style={styles.noCodeWarning}>
+                    <p>⚠️ No valid cashback code detected.</p>
+                    <p style={{fontSize: '0.8em'}}>Please scan the QR code on your product to redeem.</p>
+                </div>
+            )}
+            
             <div style={styles.formGroup}>
               <label htmlFor="name" style={styles.label}>Your Name</label>
               <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required style={styles.input} />
@@ -164,7 +172,14 @@ function RedeemForm() {
               <label htmlFor="mobile" style={styles.label}>Mobile Number</label>
               <input type="tel" id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} pattern="[0-9]{10}" title="Please enter a 10-digit mobile number" required style={styles.input} />
             </div>
-            <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Validating...' : 'Get OTP'}</button>
+            
+            <button 
+                type="submit" 
+                style={styles.button} 
+                disabled={isLoading || !isCodeHardcoded}
+            >
+                {isLoading ? 'Validating...' : 'Get OTP'}
+            </button>
           </form>
         );
       case 'otp':
@@ -335,5 +350,14 @@ const styles = {
     fontWeight: 'bold',
     color: 'var(--success-color)',
     margin: '10px 0',
+  },
+  noCodeWarning: {
+    backgroundColor: '#fff3cd',
+    color: '#856404',
+    padding: '15px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    textAlign: 'center',
+    border: '1px solid #ffeeba',
   }
 };

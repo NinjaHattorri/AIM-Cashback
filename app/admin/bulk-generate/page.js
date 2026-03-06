@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'qrcode';
+import { jsPDF } from 'jspdf';
 
 export default function BulkGeneratePage() {
   // State for random generation
@@ -54,60 +55,53 @@ export default function BulkGeneratePage() {
   const downloadCodes = async () => {
     if (generatedCodesList.length === 0) return;
     setIsLoading(true);
-    setMessage('Generating QR Codes...');
+    setMessage('Generating PDF with QR Codes...');
 
     try {
-      const qrCodesHtml = await Promise.all(generatedCodesList.map(async (code) => {
+      // Create PDF - A4 size (210mm x 297mm)
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      for (let i = 0; i < generatedCodesList.length; i++) {
+        const code = generatedCodesList[i];
+        
+        // Add a new page for every code except the first one
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // Generate QR Code as DataURL
         const redemptionUrl = `${window.location.origin}/redeem?code=${code}`;
-        const qrDataUrl = await QRCode.toDataURL(redemptionUrl, { width: 200, margin: 2 });
-        return `
-          <div style="display: inline-block; margin: 15px; padding: 15px; border: 1px solid #ccc; text-align: center; font-family: sans-serif; border-radius: 8px; width: 220px;">
-            <img src="${qrDataUrl}" alt="${code}" style="width: 200px; height: 200px;" />
-            <div style="margin-top: 10px; font-weight: bold; font-size: 1.2em; letter-spacing: 1px;">${code}</div>
-            <div style="font-size: 0.8em; color: #666; margin-top: 5px;">Scan to Redeem Cashback</div>
-          </div>
-        `;
-      }));
+        const qrDataUrl = await QRCode.toDataURL(redemptionUrl, { 
+          width: 500, 
+          margin: 1,
+          errorCorrectionLevel: 'H'
+        });
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Cashback QR Codes</title>
-          <style>
-            body { margin: 0; padding: 20px; font-family: sans-serif; }
-            @media print {
-              .no-print { display: none; }
-              div { page-break-inside: avoid; }
-            }
-            .qr-container { display: flex; flex-wrap: wrap; justify-content: center; }
-          </style>
-        </head>
-        <body>
-          <div class="no-print" style="padding: 20px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; margin-bottom: 30px; text-align: center; border-radius: 8px;">
-            <h1 style="margin-top: 0;">Cashback QR Codes Generation</h1>
-            <p>Generated ${generatedCodesList.length} codes on ${new Date().toLocaleString()}</p>
-            <button onclick="window.print()" style="padding: 12px 25px; cursor: pointer; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold;">Print QR Codes / Save as PDF</button>
-          </div>
-          <div class="qr-container">
-            ${qrCodesHtml.join('')}
-          </div>
-        </body>
-        </html>
-      `;
+        // Calculate centering
+        // A4 is 210mm wide. If QR is 150mm wide:
+        const qrSize = 150; 
+        const x = (210 - qrSize) / 2;
+        const y = (297 - qrSize) / 2;
 
-      const element = document.createElement("a");
-      const file = new Blob([htmlContent], {type: 'text/html'});
-      element.href = URL.createObjectURL(file);
-      element.download = `cashback_qr_codes_${new Date().toISOString().slice(0, 10)}.html`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-      setMessage('QR Codes generated successfully!');
+        // Add QR to PDF
+        pdf.addImage(qrDataUrl, 'PNG', x, y, qrSize, qrSize);
+        
+        // Optional: Add the code text below just for identification in PDF
+        pdf.setFontSize(16);
+        pdf.text(code, 105, y + qrSize + 15, { align: 'center' });
+      }
+
+      pdf.save(`cashback_qr_codes_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+      setMessage('QR Code PDF exported successfully!');
       setIsError(false);
     } catch (err) {
-      console.error('QR Generation Error:', err);
-      setMessage('Failed to generate QR codes.');
+      console.error('PDF Export Error:', err);
+      setMessage('Failed to export PDF.');
       setIsError(true);
     } finally {
       setIsLoading(false);
@@ -189,7 +183,7 @@ export default function BulkGeneratePage() {
                 onClick={downloadCodes} 
                 style={{ ...styles.button, backgroundColor: 'var(--success-color)', marginTop: '10px' }}
               >
-                Export QR Codes (.html)
+                Export QR Codes (PDF)
               </button>
             )}
           </form>

@@ -5,34 +5,40 @@ import { useRouter } from 'next/navigation';
 
 export default function AdminRedemptionsPage() {
   const [redemptions, setRedemptions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchRedemptions = async () => {
-      try {
-        const response = await fetch('/api/admin/redemptions');
-        const data = await response.json();
+  const fetchRedemptions = async (query = '') => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/admin/redemptions?q=${query}`);
+      const data = await response.json();
 
-        if (data.success) {
-          setRedemptions(data.data);
-        } else {
-          setMessage(`Error: ${data.message}`);
-          setIsError(true);
-        }
-      } catch (error) {
-        console.error('Failed to fetch redemptions:', error);
-        setMessage('An unexpected error occurred while fetching redemptions.');
+      if (data.success) {
+        setRedemptions(data.data);
+      } else {
+        setMessage(`Error: ${data.message}`);
         setIsError(true);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch redemptions:', error);
+      setMessage('An unexpected error occurred while fetching redemptions.');
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchRedemptions();
-  }, []);
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchRedemptions(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -62,7 +68,17 @@ export default function AdminRedemptionsPage() {
     <div style={styles.pageContainer}>
       <div style={styles.headerBar}>
         <button onClick={() => router.back()} style={styles.backButton}>&larr; Back to Dashboard</button>
-        <h1 style={styles.header}>All Redemptions</h1>
+        <h1 style={styles.header}>View Redemptions</h1>
+      </div>
+
+      <div style={styles.searchContainer}>
+        <input
+          type="text"
+          placeholder="Search by name, mobile, or code..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={styles.searchInput}
+        />
       </div>
       
       {message && (
@@ -75,25 +91,25 @@ export default function AdminRedemptionsPage() {
         {isLoading ? (
           <p style={styles.loading}>Loading redemptions...</p>
         ) : redemptions.length === 0 ? (
-          <p style={styles.noData}>No redemptions have been made yet.</p>
+          <p style={styles.noData}>No redemptions found matching your search.</p>
         ) : (
           <table style={styles.table}>
             <thead>
               <tr>
                 <th style={styles.th}>Redeemed At</th>
                 <th style={styles.th}>Code</th>
-                <th style={styles.th}>Cashback Amount</th>
+                <th style={styles.th}>Amount</th>
                 <th style={styles.th}>Buyer Name</th>
                 <th style={styles.th}>Buyer Mobile</th>
                 <th style={styles.th}>Payment Info</th>
-                <th style={styles.th}>Payout Status</th>
+                <th style={styles.th}>Status</th>
               </tr>
             </thead>
             <tbody>
               {redemptions.map((redemption) => (
                 <tr key={redemption._id}>
                   <td style={styles.td}>{formatDate(redemption.redeemedAt)}</td>
-                  <td style={styles.td}>{redemption.codeId ? redemption.codeId.code : 'N/A'}</td>
+                  <td style={styles.td}><strong>{redemption.codeId ? redemption.codeId.code : 'N/A'}</strong></td>
                   <td style={styles.td}>₹{redemption.cashbackAmount}</td>
                   <td style={styles.td}>{redemption.buyerName}</td>
                   <td style={styles.td}>{redemption.buyerMobile}</td>
@@ -136,6 +152,17 @@ const styles = {
     cursor: 'pointer',
     fontSize: '16px',
     fontWeight: '600',
+  },
+  searchContainer: {
+    marginBottom: '20px',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 15px',
+    borderRadius: '8px',
+    border: '1px solid var(--border-color, #ddd)',
+    fontSize: '16px',
+    boxSizing: 'border-box',
   },
   message: {
     padding: '15px',

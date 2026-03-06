@@ -61,6 +61,7 @@ export async function POST(request) {
         success: true, 
         message: `Successfully generated and saved ${count} new codes.`,
         count: newCodes.length,
+        codes: newCodes.map(c => c.code),
     }, { status: 201 });
 
   } catch (error) {

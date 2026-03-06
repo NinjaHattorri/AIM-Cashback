@@ -7,6 +7,7 @@ export default function BulkGeneratePage() {
   // State for random generation
   const [numberOfCodes, setNumberOfCodes] = useState(10);
   const [randomExpiresAt, setRandomExpiresAt] = useState('');
+  const [generatedCodesList, setGeneratedCodesList] = useState([]);
   
   // State for custom code import
   const [customCodes, setCustomCodes] = useState('');
@@ -36,6 +37,7 @@ export default function BulkGeneratePage() {
       const data = await response.json();
       if (data.success) {
         setMessage(`Successfully generated ${data.count} random codes!`);
+        setGeneratedCodesList(data.codes);
         setIsError(false);
       } else {
         throw new Error(data.message);
@@ -46,6 +48,18 @@ export default function BulkGeneratePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const downloadCodes = () => {
+    if (generatedCodesList.length === 0) return;
+    
+    const element = document.createElement("a");
+    const file = new Blob([generatedCodesList.join('\n')], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `cashback_codes_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   const handleCustomSubmit = async (e) => {
@@ -117,6 +131,15 @@ export default function BulkGeneratePage() {
             <button type="submit" style={styles.button} disabled={isLoading}>
               {isLoading ? 'Generating...' : 'Generate Random Codes'}
             </button>
+            {generatedCodesList.length > 0 && (
+              <button 
+                type="button" 
+                onClick={downloadCodes} 
+                style={{ ...styles.button, backgroundColor: 'var(--success-color)', marginTop: '10px' }}
+              >
+                Export Generated Codes (.txt)
+              </button>
+            )}
           </form>
         </div>
 

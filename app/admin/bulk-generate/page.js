@@ -82,15 +82,11 @@ export default function BulkGeneratePage() {
         });
 
         // Calculate centering
-        // A4 is 210mm wide. If QR is 150mm wide:
         const qrSize = 150; 
         const x = (210 - qrSize) / 2;
         const y = (297 - qrSize) / 2;
 
-        // Add QR to PDF
         pdf.addImage(qrDataUrl, 'PNG', x, y, qrSize, qrSize);
-        
-        // Optional: Add the code text below just for identification in PDF
         pdf.setFontSize(16);
         pdf.text(code, 105, y + qrSize + 15, { align: 'center' });
       }
@@ -150,94 +146,141 @@ export default function BulkGeneratePage() {
 
   return (
     <div style={styles.pageContainer}>
-      <div style={styles.headerBar}>
-        <button onClick={() => router.back()} style={styles.backButton}>&larr; Back to Dashboard</button>
-        <h1 style={styles.header}>Manage Codes</h1>
-      </div>
+      <header style={styles.headerBar}>
+        <div style={{...styles.logoContainer, cursor: 'pointer'}} onClick={() => router.push('/admin/dashboard')}>
+          <span style={styles.logoTextMain}>AIM</span>
+          <span style={styles.logoTextSub}>FILAMENTS</span>
+        </div>
+        <button onClick={() => router.push('/admin/dashboard')} style={styles.backButton}>Dashboard</button>
+      </header>
 
-      {message && (
-        <p style={{ ...styles.message, color: isError ? 'var(--error-color)' : 'var(--success-color)', backgroundColor: isError ? '#f8d7da' : '#d4edda' }}>
-          {message}
-        </p>
-      )}
-      
-      <div style={styles.grid}>
-        {/* Random Generation Form */}
-        <div style={styles.formContainer}>
-          <h2 style={styles.subHeader}>Generate Random Codes</h2>
-          <form onSubmit={handleRandomSubmit} style={styles.form}>
-            <div style={styles.formGroup}>
-              <label htmlFor="numberOfCodes" style={styles.label}>Number of Codes</label>
-              <input type="number" id="numberOfCodes" value={numberOfCodes} onChange={(e) => setNumberOfCodes(e.target.value)} min="1" max="10000" required style={styles.input} />
-            </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="randomExpiresAt" style={styles.label}>Expiration Date (Optional)</label>
-              <input type="date" id="randomExpiresAt" value={randomExpiresAt} onChange={(e) => setRandomExpiresAt(e.target.value)} style={styles.input} />
-            </div>
-            <button type="submit" style={styles.button} disabled={isLoading}>
-              {isLoading ? 'Generating...' : 'Generate Random Codes'}
-            </button>
-            {generatedCodesList.length > 0 && (
-              <button 
-                type="button" 
-                onClick={downloadCodes} 
-                style={{ ...styles.button, backgroundColor: 'var(--success-color)', marginTop: '10px' }}
-              >
-                Export QR Codes (PDF)
+      <main style={styles.mainContent}>
+        <h1 style={styles.pageTitle}>Inventory Generation</h1>
+
+        {message && (
+          <p style={{ 
+              ...styles.message, 
+              color: isError ? 'var(--error-color)' : 'var(--success-color)',
+              border: `1px solid ${isError ? 'var(--error-color)' : 'var(--success-color)'}`,
+              backgroundColor: isError ? '#fff5f5' : '#f5fff5'
+          }}>
+            {message}
+          </p>
+        )}
+        
+        <div style={styles.grid}>
+          {/* Random Generation Form */}
+          <div style={styles.formContainer}>
+            <h2 style={styles.subHeader}>Batch Generation</h2>
+            <form onSubmit={handleRandomSubmit} style={styles.form}>
+              <div style={styles.formGroup}>
+                <label htmlFor="numberOfCodes" style={styles.label}>Quantity</label>
+                <input type="number" id="numberOfCodes" value={numberOfCodes} onChange={(e) => setNumberOfCodes(e.target.value)} min="1" max="10000" required style={styles.input} />
+              </div>
+              <div style={styles.formGroup}>
+                <label htmlFor="randomExpiresAt" style={styles.label}>Expiry Date (Optional)</label>
+                <input type="date" id="randomExpiresAt" value={randomExpiresAt} onChange={(e) => setRandomExpiresAt(e.target.value)} style={styles.input} />
+              </div>
+              <button type="submit" style={styles.button} disabled={isLoading}>
+                {isLoading ? 'Processing...' : 'Generate New Batch'}
               </button>
-            )}
-          </form>
-        </div>
+              {generatedCodesList.length > 0 && (
+                <button 
+                  type="button" 
+                  onClick={downloadCodes} 
+                  style={{ ...styles.button, backgroundColor: 'var(--success-color)', marginTop: '10px' }}
+                >
+                  Download PDF Labels
+                </button>
+              )}
+            </form>
+          </div>
 
-        {/* Custom Codes Form */}
-        <div style={styles.formContainer}>
-          <h2 style={styles.subHeader}>Import Custom Codes</h2>
-          <form onSubmit={handleCustomSubmit} style={styles.form}>
-            <div style={styles.formGroup}>
-              <label htmlFor="customCodes" style={styles.label}>Paste Codes (one per line)</label>
-              <textarea id="customCodes" value={customCodes} onChange={(e) => setCustomCodes(e.target.value)} required style={styles.textarea} rows="5" placeholder="CODE123&#10;CODE456&#10;CODE789" />
-            </div>
-            <div style={styles.formGroup}>
-              <label htmlFor="customExpiresAt" style={styles.label}>Expiration Date (Optional)</label>
-              <input type="date" id="customExpiresAt" value={customExpiresAt} onChange={(e) => setCustomExpiresAt(e.target.value)} style={styles.input} />
-            </div>
-            <button type="submit" style={styles.button} disabled={isLoading}>
-              {isLoading ? 'Importing...' : 'Import Custom Codes'}
-            </button>
-          </form>
+          {/* Custom Codes Form */}
+          <div style={styles.formContainer}>
+            <h2 style={styles.subHeader}>Manual Import</h2>
+            <form onSubmit={handleCustomSubmit} style={styles.form}>
+              <div style={styles.formGroup}>
+                <label htmlFor="customCodes" style={styles.label}>Codes List (New line separated)</label>
+                <textarea id="customCodes" value={customCodes} onChange={(e) => setCustomCodes(e.target.value)} required style={styles.textarea} rows="5" placeholder="CODE001&#10;CODE002&#10;CODE003" />
+              </div>
+              <div style={styles.formGroup}>
+                <label htmlFor="customExpiresAt" style={styles.label}>Expiry Date (Optional)</label>
+                <input type="date" id="customExpiresAt" value={customExpiresAt} onChange={(e) => setCustomExpiresAt(e.target.value)} style={styles.input} />
+              </div>
+              <button type="submit" style={{...styles.button, backgroundColor: 'var(--secondary-color)'}} disabled={isLoading}>
+                {isLoading ? 'Importing...' : 'Confirm Manual Import'}
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
+      </main>
+
+      <footer style={styles.footer}>
+        © {new Date().getFullYear()} Aim Filaments. All Rights Reserved.
+      </footer>
     </div>
   );
 }
 
 const styles = {
   pageContainer: {
-    fontFamily: 'var(--font-family, Arial, sans-serif)',
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '20px auto',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: 'var(--background-color)',
   },
   headerBar: {
+    backgroundColor: '#ffffff',
+    padding: '15px 40px',
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '20px',
-    borderBottom: '1px solid var(--border-color, #eee)',
-    paddingBottom: '15px',
-    marginBottom: '30px',
+    borderBottom: '3px solid var(--primary-color)',
+    boxShadow: 'var(--shadow-sm)',
   },
-  header: {
-    color: 'var(--text-color, #333)',
-    margin: 0,
-    fontSize: '1.8em',
+  logoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    lineHeight: '1',
+  },
+  logoTextMain: {
+    fontSize: '24px',
+    fontWeight: '900',
+    color: 'var(--secondary-color)',
+    letterSpacing: '1px',
+  },
+  logoTextSub: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--primary-color)',
+    letterSpacing: '3px',
   },
   backButton: {
-    background: 'none',
+    backgroundColor: 'var(--secondary-color)',
+    color: 'white',
+    padding: '8px 20px',
     border: 'none',
-    color: 'var(--primary-color, #007bff)',
+    borderRadius: 'var(--border-radius)',
     cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600',
+    fontSize: '14px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  mainContent: {
+    flex: 1,
+    padding: '40px 20px',
+    maxWidth: '1200px',
+    width: '100%',
+    margin: '0 auto',
+  },
+  pageTitle: {
+    fontSize: '2em',
+    fontWeight: '800',
+    color: 'var(--secondary-color)',
+    marginBottom: '30px',
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   grid: {
     display: 'grid',
@@ -245,16 +288,20 @@ const styles = {
     gap: '30px',
   },
   formContainer: {
-    backgroundColor: 'var(--form-background-color, #fff)',
+    backgroundColor: '#ffffff',
     padding: '30px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+    borderRadius: 'var(--border-radius)',
+    boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--border-color)',
   },
   subHeader: {
-    textAlign: 'center',
-    color: 'var(--text-color, #333)',
+    color: 'var(--secondary-color)',
     marginBottom: '25px',
-    fontSize: '1.4em',
+    fontSize: '1.3em',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    borderLeft: '4px solid var(--primary-color)',
+    paddingLeft: '12px',
   },
   form: {
     display: 'flex',
@@ -266,41 +313,53 @@ const styles = {
   label: {
     marginBottom: '8px',
     display: 'block',
-    color: 'var(--light-text-color, #666)',
-    fontWeight: '500',
+    color: 'var(--secondary-color)',
+    fontWeight: '600',
+    fontSize: '0.85em',
+    textTransform: 'uppercase',
   },
   input: {
     width: '100%',
     padding: '12px',
-    border: '1px solid var(--border-color, #ccc)',
-    borderRadius: '8px',
-    boxSizing: 'border-box',
+    border: '1px solid #ced4da',
+    borderRadius: 'var(--border-radius)',
     fontSize: '16px',
+    outline: 'none',
   },
   textarea: {
     width: '100%',
     padding: '12px',
-    border: '1px solid var(--border-color, #ccc)',
-    borderRadius: '8px',
-    boxSizing: 'border-box',
-    fontFamily: 'monospace',
+    border: '1px solid #ced4da',
+    borderRadius: 'var(--border-radius)',
     fontSize: '14px',
+    outline: 'none',
+    minHeight: '120px',
   },
   button: {
-    backgroundColor: 'var(--primary-color, #007bff)',
+    backgroundColor: 'var(--primary-color)',
     color: 'white',
-    padding: '12px 15px',
+    padding: '14px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius)',
     cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600',
-    marginTop: '10px',
+    fontSize: '15px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
   },
   message: {
-    marginBottom: '20px',
+    marginBottom: '30px',
     padding: '15px',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius)',
     textAlign: 'center',
+    fontWeight: '500',
+  },
+  footer: {
+    textAlign: 'center',
+    padding: '20px',
+    fontSize: '12px',
+    color: 'var(--light-text-color)',
+    backgroundColor: '#ffffff',
+    borderTop: '1px solid #eee',
   }
 };

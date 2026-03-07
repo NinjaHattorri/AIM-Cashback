@@ -59,159 +59,217 @@ export default function AdminRedemptionsPage() {
   const getStatusChip = (status) => {
     const style = {
       ...styles.statusChip,
-      backgroundColor: status === 'completed' ? 'var(--success-color)' : (status === 'failed' ? 'var(--error-color)' : '#6c757d'),
+      backgroundColor: status === 'completed' ? 'var(--success-color)' : (status === 'failed' ? 'var(--error-color)' : 'var(--secondary-color)'),
     };
     return <span style={style}>{status}</span>;
   };
 
   return (
     <div style={styles.pageContainer}>
-      <div style={styles.headerBar}>
-        <button onClick={() => router.back()} style={styles.backButton}>&larr; Back to Dashboard</button>
-        <h1 style={styles.header}>View Redemptions</h1>
-      </div>
+      <header style={styles.headerBar}>
+        <div style={{...styles.logoContainer, cursor: 'pointer'}} onClick={() => router.push('/admin/dashboard')}>
+          <span style={styles.logoTextMain}>AIM</span>
+          <span style={styles.logoTextSub}>FILAMENTS</span>
+        </div>
+        <button onClick={() => router.push('/admin/dashboard')} style={styles.backButton}>Dashboard</button>
+      </header>
 
-      <div style={styles.searchContainer}>
-        <input
-          type="text"
-          placeholder="Search by name, mobile, or code..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={styles.searchInput}
-        />
-      </div>
-      
-      {message && (
-        <p style={{ ...styles.message, color: isError ? 'var(--error-color)' : 'var(--success-color)' }}>
-          {message}
-        </p>
-      )}
+      <main style={styles.mainContent}>
+        <h1 style={styles.pageTitle}>Redemption Logs</h1>
 
-      <div style={styles.tableContainer}>
-        {isLoading ? (
-          <p style={styles.loading}>Loading redemptions...</p>
-        ) : redemptions.length === 0 ? (
-          <p style={styles.noData}>No redemptions found matching your search.</p>
-        ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Redeemed At</th>
-                <th style={styles.th}>Code</th>
-                <th style={styles.th}>Amount</th>
-                <th style={styles.th}>Buyer Name</th>
-                <th style={styles.th}>Buyer Mobile</th>
-                <th style={styles.th}>Payment Info</th>
-                <th style={styles.th}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {redemptions.map((redemption) => (
-                <tr key={redemption._id}>
-                  <td style={styles.td}>{formatDate(redemption.redeemedAt)}</td>
-                  <td style={styles.td}><strong>{redemption.codeId ? redemption.codeId.code : 'N/A'}</strong></td>
-                  <td style={styles.td}>₹{redemption.cashbackAmount}</td>
-                  <td style={styles.td}>{redemption.buyerName}</td>
-                  <td style={styles.td}>{redemption.buyerMobile}</td>
-                  <td style={styles.td}>{getPaymentInfo(redemption)}</td>
-                  <td style={styles.td}>{getStatusChip(redemption.payoutStatus)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={styles.searchContainer}>
+          <input
+            type="text"
+            placeholder="🔍 Search redemptions (Name, Mobile, or Code)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+        
+        {message && (
+          <p style={{ ...styles.message, color: isError ? 'var(--error-color)' : 'var(--success-color)' }}>
+            {message}
+          </p>
         )}
-      </div>
+
+        <div style={styles.tableContainer}>
+          {isLoading ? (
+            <p style={styles.loading}>Retrieving redemption history...</p>
+          ) : redemptions.length === 0 ? (
+            <p style={styles.noData}>No redemptions found matching your search.</p>
+          ) : (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Timestamp</th>
+                  <th style={styles.th}>Code</th>
+                  <th style={styles.th}>Payout</th>
+                  <th style={styles.th}>Recipient</th>
+                  <th style={styles.th}>Payment Details</th>
+                  <th style={styles.th}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {redemptions.map((redemption) => (
+                  <tr key={redemption._id}>
+                    <td style={styles.td}>{formatDate(redemption.redeemedAt)}</td>
+                    <td style={styles.td}><strong>{redemption.codeId ? redemption.codeId.code : 'DELETED'}</strong></td>
+                    <td style={styles.td}>₹{redemption.cashbackAmount}</td>
+                    <td style={styles.td}>
+                        <div style={{fontWeight: '600'}}>{redemption.buyerName}</div>
+                        <div style={{fontSize: '0.85em', color: 'var(--light-text-color)'}}>{redemption.buyerMobile}</div>
+                    </td>
+                    <td style={styles.td}>{getPaymentInfo(redemption)}</td>
+                    <td style={styles.td}>{getStatusChip(redemption.payoutStatus)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </main>
+
+      <footer style={styles.footer}>
+        © {new Date().getFullYear()} Aim Filaments. All Rights Reserved.
+      </footer>
     </div>
   );
 }
 
 const styles = {
   pageContainer: {
-    fontFamily: 'var(--font-family, Arial, sans-serif)',
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '20px auto',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: 'var(--background-color)',
   },
   headerBar: {
+    backgroundColor: '#ffffff',
+    padding: '15px 40px',
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '20px',
-    borderBottom: '1px solid var(--border-color, #eee)',
-    paddingBottom: '15px',
-    marginBottom: '30px',
+    borderBottom: '3px solid var(--primary-color)',
+    boxShadow: 'var(--shadow-sm)',
   },
-  header: {
-    color: 'var(--text-color, #333)',
-    margin: 0,
-    fontSize: '1.8em',
+  logoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    lineHeight: '1',
+  },
+  logoTextMain: {
+    fontSize: '24px',
+    fontWeight: '900',
+    color: 'var(--secondary-color)',
+    letterSpacing: '1px',
+  },
+  logoTextSub: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--primary-color)',
+    letterSpacing: '3px',
   },
   backButton: {
-    background: 'none',
+    backgroundColor: 'var(--secondary-color)',
+    color: 'white',
+    padding: '8px 20px',
     border: 'none',
-    color: 'var(--primary-color, #007bff)',
+    borderRadius: 'var(--border-radius)',
     cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600',
+    fontSize: '14px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  mainContent: {
+    flex: 1,
+    padding: '40px 20px',
+    maxWidth: '1200px',
+    width: '100%',
+    margin: '0 auto',
+  },
+  pageTitle: {
+    fontSize: '2em',
+    fontWeight: '800',
+    color: 'var(--secondary-color)',
+    marginBottom: '30px',
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   searchContainer: {
-    marginBottom: '20px',
+    marginBottom: '25px',
   },
   searchInput: {
     width: '100%',
-    padding: '12px 15px',
-    borderRadius: '8px',
-    border: '1px solid var(--border-color, #ddd)',
+    padding: '14px 20px',
+    borderRadius: 'var(--border-radius)',
+    border: '1px solid #ced4da',
     fontSize: '16px',
-    boxSizing: 'border-box',
+    boxShadow: 'var(--shadow-sm)',
+    outline: 'none',
   },
   message: {
     padding: '15px',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius)',
     textAlign: 'center',
-    marginBottom: '20px',
+    marginBottom: '25px',
   },
   loading: {
     textAlign: 'center',
     fontSize: '1.1em',
-    color: 'var(--light-text-color, #666)',
+    color: 'var(--light-text-color)',
+    padding: '40px',
   },
   noData: {
     textAlign: 'center',
     fontSize: '1.1em',
     color: '#888',
-    padding: '40px',
-    backgroundColor: 'var(--form-background-color, #fff)',
-    borderRadius: '12px',
+    padding: '60px',
+    backgroundColor: '#fff',
+    borderRadius: 'var(--border-radius)',
+    border: '1px solid var(--border-color)',
   },
   tableContainer: {
     overflowX: 'auto',
-    backgroundColor: 'var(--form-background-color, #fff)',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-    padding: '20px',
+    backgroundColor: '#ffffff',
+    borderRadius: 'var(--border-radius)',
+    boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--border-color)',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
   },
   th: {
-    borderBottom: '2px solid var(--border-color, #ddd)',
-    padding: '12px 15px',
+    borderBottom: '2px solid #eee',
+    padding: '15px 20px',
     textAlign: 'left',
-    fontWeight: '600',
-    color: 'var(--light-text-color, #666)',
+    fontWeight: '700',
+    color: 'var(--secondary-color)',
+    textTransform: 'uppercase',
+    fontSize: '0.85em',
+    backgroundColor: '#fcfcfc',
   },
   td: {
-    borderBottom: '1px solid var(--border-color, #ddd)',
-    padding: '12px 15px',
+    borderBottom: '1px solid #eee',
+    padding: '15px 20px',
     textAlign: 'left',
+    fontSize: '0.9em',
   },
   statusChip: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: '4px',
     color: '#fff',
-    fontSize: '0.8em',
-    fontWeight: 'bold',
-    textTransform: 'capitalize',
+    fontSize: '0.75em',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
+  footer: {
+    textAlign: 'center',
+    padding: '20px',
+    fontSize: '12px',
+    color: 'var(--light-text-color)',
+    backgroundColor: '#ffffff',
+    borderTop: '1px solid #eee',
+  }
 };

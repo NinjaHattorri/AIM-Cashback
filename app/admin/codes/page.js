@@ -21,14 +21,14 @@ function QRModal({ code, onClose }) {
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <h2 style={{marginTop: 0}}>{code}</h2>
+        <h2 style={{color: 'var(--secondary-color)', marginBottom: '15px'}}>{code}</h2>
         {qrDataUrl ? (
-          <img src={qrDataUrl} alt={`QR for ${code}`} style={{width: '250px', height: '250px'}} />
+          <img src={qrDataUrl} alt={`QR for ${code}`} style={{width: '250px', height: '250px', border: '1px solid #eee'}} />
         ) : (
           <p>Generating QR...</p>
         )}
-        <div style={{marginTop: '20px'}}>
-          <button onClick={onClose} style={styles.cancelButton}>Close</button>
+        <div style={{marginTop: '25px'}}>
+          <button onClick={onClose} style={{...styles.cancelButton, width: '100%'}}>Close Preview</button>
         </div>
       </div>
     </div>
@@ -136,272 +136,333 @@ export default function AdminCodesPage() {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' };
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   const getStatusChip = (status) => {
     const style = {
       ...styles.statusChip,
-      backgroundColor: status === 'redeemed' ? 'var(--success-color)' : (status === 'expired' ? 'var(--error-color)' : '#6c757d'),
+      backgroundColor: status === 'redeemed' ? 'var(--success-color)' : (status === 'expired' ? 'var(--error-color)' : 'var(--secondary-color)'),
     };
     return <span style={style}>{status}</span>;
   };
 
   return (
     <div style={styles.pageContainer}>
-      <div style={styles.headerBar}>
-        <button onClick={() => router.back()} style={styles.backButton}>&larr; Back to Dashboard</button>
-        <h1 style={styles.header}>Manage Cashback Codes</h1>
-      </div>
+      <header style={styles.headerBar}>
+        <div style={{...styles.logoContainer, cursor: 'pointer'}} onClick={() => router.push('/admin/dashboard')}>
+          <span style={styles.logoTextMain}>AIM</span>
+          <span style={styles.logoTextSub}>FILAMENTS</span>
+        </div>
+        <button onClick={() => router.push('/admin/dashboard')} style={styles.backButton}>Dashboard</button>
+      </header>
 
-      <div style={styles.searchContainer}>
-        <input
-          type="text"
-          placeholder="Search by code..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={styles.searchInput}
-        />
-      </div>
-      
-      {message && (
-        <p style={{ 
-          ...styles.message, 
-          color: isError ? 'var(--error-color)' : 'var(--success-color)',
-          backgroundColor: isError ? '#f8d7da' : '#d4edda'
-        }}>
-          {message}
-        </p>
-      )}
+      <main style={styles.mainContent}>
+        <h1 style={styles.pageTitle}>Code Inventory</h1>
 
-      <div style={styles.tableContainer}>
-        {isLoading ? (
-          <p style={styles.loading}>Loading codes...</p>
-        ) : codes.length === 0 ? (
-          <p style={styles.noData}>No codes found matching your search.</p>
-        ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Code</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Amount</th>
-                <th style={styles.th}>Expires At</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {codes.map((codeItem) => (
-                <tr key={codeItem._id}>
-                  <td style={styles.td}><strong>{codeItem.code}</strong></td>
-                  <td style={styles.td}>
-                    {editingId === codeItem._id ? (
-                      <select 
-                        value={editForm.status} 
-                        onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                        style={styles.editInput}
-                      >
-                        <option value="generated">generated</option>
-                        <option value="pending_redemption">pending_redemption</option>
-                        <option value="redeemed">redeemed</option>
-                        <option value="expired">expired</option>
-                      </select>
-                    ) : (
-                      getStatusChip(codeItem.status)
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    {editingId === codeItem._id ? (
-                      <input 
-                        type="number" 
-                        value={editForm.cashbackAmount} 
-                        onChange={(e) => setEditForm({...editForm, cashbackAmount: e.target.value})}
-                        style={styles.editInput}
-                      />
-                    ) : (
-                      codeItem.cashbackAmount > 0 ? `₹${codeItem.cashbackAmount}` : 'N/A'
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    {editingId === codeItem._id ? (
-                      <input 
-                        type="date" 
-                        value={editForm.expiresAt} 
-                        onChange={(e) => setEditForm({...editForm, expiresAt: e.target.value})}
-                        style={styles.editInput}
-                      />
-                    ) : (
-                      formatDate(codeItem.expiresAt)
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    {editingId === codeItem._id ? (
-                      <div style={styles.actionButtons}>
-                        <button onClick={() => handleSaveEdit(codeItem._id)} style={styles.saveButton}>Save</button>
-                        <button onClick={() => setEditingId(null)} style={styles.cancelButton}>Cancel</button>
-                      </div>
-                    ) : (
-                      <div style={styles.actionButtons}>
-                        <button onClick={() => setViewingQrCode(codeItem.code)} style={styles.viewQrButton}>View QR</button>
-                        <button onClick={() => handleEditClick(codeItem)} style={styles.editButton}>Edit</button>
-                        <button onClick={() => handleDeleteCode(codeItem._id)} style={styles.deleteButton}>Delete</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={styles.searchContainer}>
+          <input
+            type="text"
+            placeholder="🔍 Search codes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+        
+        {message && (
+          <p style={{ 
+            ...styles.message, 
+            color: isError ? 'var(--error-color)' : 'var(--success-color)',
+            backgroundColor: isError ? '#fff5f5' : '#f5fff5',
+            border: `1px solid ${isError ? 'var(--error-color)' : 'var(--success-color)'}`
+          }}>
+            {message}
+          </p>
         )}
-      </div>
+
+        <div style={styles.tableContainer}>
+          {isLoading ? (
+            <p style={styles.loading}>Synchronizing database...</p>
+          ) : codes.length === 0 ? (
+            <p style={styles.noData}>No records match your search criteria.</p>
+          ) : (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Unique Code</th>
+                  <th style={styles.th}>Current Status</th>
+                  <th style={styles.th}>Value</th>
+                  <th style={styles.th}>Expiry</th>
+                  <th style={styles.th}>Control</th>
+                </tr>
+              </thead>
+              <tbody>
+                {codes.map((codeItem) => (
+                  <tr key={codeItem._id}>
+                    <td style={styles.td}><strong>{codeItem.code}</strong></td>
+                    <td style={styles.td}>
+                      {editingId === codeItem._id ? (
+                        <select 
+                          value={editForm.status} 
+                          onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                          style={styles.editInput}
+                        >
+                          <option value="generated">generated</option>
+                          <option value="pending_redemption">pending_redemption</option>
+                          <option value="redeemed">redeemed</option>
+                          <option value="expired">expired</option>
+                        </select>
+                      ) : (
+                        getStatusChip(codeItem.status)
+                      )}
+                    </td>
+                    <td style={styles.td}>
+                      {editingId === codeItem._id ? (
+                        <input 
+                          type="number" 
+                          value={editForm.cashbackAmount} 
+                          onChange={(e) => setEditForm({...editForm, cashbackAmount: e.target.value})}
+                          style={styles.editInput}
+                        />
+                      ) : (
+                        codeItem.cashbackAmount > 0 ? `₹${codeItem.cashbackAmount}` : '—'
+                      )}
+                    </td>
+                    <td style={styles.td}>
+                      {editingId === codeItem._id ? (
+                        <input 
+                          type="date" 
+                          value={editForm.expiresAt} 
+                          onChange={(e) => setEditForm({...editForm, expiresAt: e.target.value})}
+                          style={styles.editInput}
+                        />
+                      ) : (
+                        formatDate(codeItem.expiresAt)
+                      )}
+                    </td>
+                    <td style={styles.td}>
+                      {editingId === codeItem._id ? (
+                        <div style={styles.actionButtons}>
+                          <button onClick={() => handleSaveEdit(codeItem._id)} style={styles.saveButton}>Save</button>
+                          <button onClick={() => setEditingId(null)} style={styles.cancelButton}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div style={styles.actionButtons}>
+                          <button onClick={() => setViewingQrCode(codeItem.code)} style={styles.viewQrButton}>QR</button>
+                          <button onClick={() => handleEditClick(codeItem)} style={styles.editButton}>Edit</button>
+                          <button onClick={() => handleDeleteCode(codeItem._id)} style={styles.deleteButton}>Del</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </main>
 
       <QRModal code={viewingQrCode} onClose={() => setViewingQrCode(null)} />
+      
+      <footer style={styles.footer}>
+        © {new Date().getFullYear()} Aim Filaments. All Rights Reserved.
+      </footer>
     </div>
   );
 }
 
 const styles = {
   pageContainer: {
-    fontFamily: 'var(--font-family, Arial, sans-serif)',
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '20px auto',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: 'var(--background-color)',
   },
   headerBar: {
+    backgroundColor: '#ffffff',
+    padding: '15px 40px',
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '20px',
-    borderBottom: '1px solid var(--border-color, #eee)',
-    paddingBottom: '15px',
-    marginBottom: '30px',
+    borderBottom: '3px solid var(--primary-color)',
+    boxShadow: 'var(--shadow-sm)',
   },
-  header: {
-    color: 'var(--text-color, #333)',
-    margin: 0,
-    fontSize: '1.8em',
+  logoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    lineHeight: '1',
+  },
+  logoTextMain: {
+    fontSize: '24px',
+    fontWeight: '900',
+    color: 'var(--secondary-color)',
+    letterSpacing: '1px',
+  },
+  logoTextSub: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--primary-color)',
+    letterSpacing: '3px',
   },
   backButton: {
-    background: 'none',
+    backgroundColor: 'var(--secondary-color)',
+    color: 'white',
+    padding: '8px 20px',
     border: 'none',
-    color: 'var(--primary-color, #007bff)',
+    borderRadius: 'var(--border-radius)',
     cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600',
+    fontSize: '14px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  mainContent: {
+    flex: 1,
+    padding: '40px 20px',
+    maxWidth: '1200px',
+    width: '100%',
+    margin: '0 auto',
+  },
+  pageTitle: {
+    fontSize: '2em',
+    fontWeight: '800',
+    color: 'var(--secondary-color)',
+    marginBottom: '30px',
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   searchContainer: {
-    marginBottom: '20px',
+    marginBottom: '25px',
   },
   searchInput: {
     width: '100%',
-    padding: '12px 15px',
-    borderRadius: '8px',
-    border: '1px solid var(--border-color, #ddd)',
+    padding: '14px 20px',
+    borderRadius: 'var(--border-radius)',
+    border: '1px solid #ced4da',
     fontSize: '16px',
-    boxSizing: 'border-box',
+    boxShadow: 'var(--shadow-sm)',
+    outline: 'none',
   },
   message: {
     padding: '15px',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius)',
     textAlign: 'center',
-    marginBottom: '20px',
+    marginBottom: '25px',
+    fontWeight: '500',
   },
   loading: {
     textAlign: 'center',
     fontSize: '1.1em',
-    color: 'var(--light-text-color, #666)',
+    color: 'var(--light-text-color)',
+    padding: '40px',
   },
   noData: {
     textAlign: 'center',
     fontSize: '1.1em',
     color: '#888',
-    padding: '40px',
-    backgroundColor: 'var(--form-background-color, #fff)',
-    borderRadius: '12px',
+    padding: '60px',
+    backgroundColor: '#fff',
+    borderRadius: 'var(--border-radius)',
+    border: '1px solid var(--border-color)',
   },
   tableContainer: {
     overflowX: 'auto',
-    backgroundColor: 'var(--form-background-color, #fff)',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-    padding: '20px',
+    backgroundColor: '#ffffff',
+    borderRadius: 'var(--border-radius)',
+    boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--border-color)',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
   },
   th: {
-    borderBottom: '2px solid var(--border-color, #ddd)',
-    padding: '12px 15px',
+    borderBottom: '2px solid #eee',
+    padding: '15px 20px',
     textAlign: 'left',
-    fontWeight: '600',
-    color: 'var(--light-text-color, #666)',
+    fontWeight: '700',
+    color: 'var(--secondary-color)',
+    textTransform: 'uppercase',
+    fontSize: '0.85em',
+    backgroundColor: '#fcfcfc',
   },
   td: {
-    borderBottom: '1px solid var(--border-color, #ddd)',
-    padding: '12px 15px',
+    borderBottom: '1px solid #eee',
+    padding: '15px 20px',
     textAlign: 'left',
+    fontSize: '0.95em',
   },
   statusChip: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: '4px',
     color: '#fff',
-    fontSize: '0.8em',
-    fontWeight: 'bold',
-    textTransform: 'capitalize',
+    fontSize: '0.75em',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   viewQrButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: 'var(--success-color)',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     cursor: 'pointer',
     marginRight: '5px',
+    fontSize: '0.8em',
+    fontWeight: '700',
   },
   editButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: 'var(--primary-color)',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     cursor: 'pointer',
     marginRight: '5px',
+    fontSize: '0.8em',
+    fontWeight: '700',
   },
   deleteButton: {
-    backgroundColor: 'var(--error-color)',
+    backgroundColor: '#666',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     cursor: 'pointer',
+    fontSize: '0.8em',
+    fontWeight: '700',
   },
   saveButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: 'var(--success-color)',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     cursor: 'pointer',
     marginRight: '5px',
+    fontSize: '0.8em',
+    fontWeight: '700',
   },
   cancelButton: {
     backgroundColor: '#6c757d',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '4px',
     cursor: 'pointer',
+    fontSize: '0.8em',
+    fontWeight: '700',
   },
   actionButtons: {
     display: 'flex',
   },
   editInput: {
-    padding: '5px',
+    padding: '6px',
     borderRadius: '4px',
-    border: '1px solid #ccc',
+    border: '1px solid #ced4da',
     width: '100%',
-    boxSizing: 'border-box',
+    fontSize: '0.9em',
   },
   modalOverlay: {
     position: 'fixed',
@@ -409,18 +470,28 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(43, 49, 55, 0.85)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    backdropFilter: 'blur(4px)',
   },
   modalContent: {
     backgroundColor: 'white',
-    padding: '30px',
-    borderRadius: '12px',
+    padding: '40px',
+    borderRadius: 'var(--border-radius)',
     textAlign: 'center',
     maxWidth: '400px',
     width: '90%',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+  },
+  footer: {
+    textAlign: 'center',
+    padding: '20px',
+    fontSize: '12px',
+    color: 'var(--light-text-color)',
+    backgroundColor: '#ffffff',
+    borderTop: '1px solid #eee',
   }
 };

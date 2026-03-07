@@ -45,41 +45,62 @@ export default function AdminLoginPage() {
 
   return (
     <div style={styles.pageContainer}>
-      <div style={styles.formContainer}>
-        <h1 style={styles.header}>Admin Panel Login</h1>
-        {message && (
-          <p style={{ ...styles.message, color: isError ? 'var(--error-color)' : 'var(--success-color)' }}>
-            {message}
-          </p>
-        )}
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.formGroup}>
-            <label htmlFor="username" style={styles.label}>Username</label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label htmlFor="password" style={styles.label}>Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={styles.input}
-            />
-          </div>
-          <button type="submit" style={styles.button} disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-      </div>
+      <header style={styles.headerBar}>
+        <div style={styles.logoContainer}>
+          <span style={styles.logoTextMain}>AIM</span>
+          <span style={styles.logoTextSub}>FILAMENTS</span>
+        </div>
+        <div style={styles.headerTagline}>ADMIN PORTAL</div>
+      </header>
+
+      <main style={styles.mainContent}>
+        <div style={styles.formContainer}>
+          <h1 style={styles.formHeader}>Admin Login</h1>
+          {message && (
+            <p style={{ 
+                ...styles.message, 
+                color: isError ? 'var(--error-color)' : 'var(--success-color)',
+                border: `1px solid ${isError ? 'var(--error-color)' : 'var(--success-color)'}`,
+                backgroundColor: isError ? '#fff5f5' : '#f5fff5'
+            }}>
+              {message}
+            </p>
+          )}
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <div style={styles.formGroup}>
+              <label htmlFor="username" style={styles.label}>Username</label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                style={styles.input}
+                placeholder="Enter admin username"
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label htmlFor="password" style={styles.label}>Password</label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={styles.input}
+                placeholder="Enter admin password"
+              />
+            </div>
+            <button type="submit" style={styles.button} disabled={isLoading}>
+              {isLoading ? 'Authenticating...' : 'Secure Login'}
+            </button>
+          </form>
+        </div>
+      </main>
+
+      <footer style={styles.footer}>
+        © {new Date().getFullYear()} Aim Filaments. All Rights Reserved.
+      </footer>
     </div>
   );
 }
@@ -87,26 +108,66 @@ export default function AdminLoginPage() {
 const styles = {
   pageContainer: {
     display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: 'var(--background-color)',
+  },
+  headerBar: {
+    backgroundColor: '#ffffff',
+    padding: '15px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '3px solid var(--secondary-color)',
+    boxShadow: 'var(--shadow-sm)',
+  },
+  logoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    lineHeight: '1',
+  },
+  logoTextMain: {
+    fontSize: '24px',
+    fontWeight: '900',
+    color: 'var(--secondary-color)',
+    letterSpacing: '1px',
+  },
+  logoTextSub: {
+    fontSize: '10px',
+    fontWeight: '700',
+    color: 'var(--primary-color)',
+    letterSpacing: '3px',
+  },
+  headerTagline: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: 'var(--light-text-color)',
+    borderLeft: '1px solid #ddd',
+    paddingLeft: '15px',
+  },
+  mainContent: {
+    flex: 1,
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '100vh',
     padding: '20px',
-    backgroundColor: 'var(--background-color)',
   },
   formContainer: {
     width: '100%',
     maxWidth: '400px',
-    backgroundColor: 'var(--form-background-color)',
+    backgroundColor: '#ffffff',
     padding: '40px',
-    borderRadius: '12px',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+    borderRadius: 'var(--border-radius)',
+    boxShadow: 'var(--shadow-md)',
+    border: '1px solid var(--border-color)',
   },
-  header: {
+  formHeader: {
     textAlign: 'center',
-    color: 'var(--text-color)',
+    color: 'var(--secondary-color)',
     marginBottom: '30px',
     fontSize: '1.8em',
-    fontWeight: '600',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   form: {
     display: 'flex',
@@ -118,35 +179,45 @@ const styles = {
   label: {
     marginBottom: '8px',
     display: 'block',
-    color: 'var(--light-text-color)',
-    fontWeight: '500',
+    color: 'var(--secondary-color)',
+    fontWeight: '600',
+    fontSize: '0.9em',
+    textTransform: 'uppercase',
   },
   input: {
     width: '100%',
     padding: '12px',
-    border: '1px solid var(--border-color)',
-    borderRadius: '8px',
-    boxSizing: 'border-box',
+    border: '1px solid #ced4da',
+    borderRadius: 'var(--border-radius)',
     fontSize: '16px',
+    outline: 'none',
   },
   button: {
-    backgroundColor: 'var(--error-color)', // Admin panel uses red theme
+    backgroundColor: 'var(--secondary-color)',
     color: 'white',
-    padding: '12px 15px',
+    padding: '14px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius)',
     cursor: 'pointer',
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: '10px',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
   },
   message: {
-    marginTop: '-10px',
     marginBottom: '20px',
-    padding: '10px',
-    borderRadius: '8px',
+    padding: '12px',
+    borderRadius: 'var(--border-radius)',
     textAlign: 'center',
     fontSize: '0.9em',
   },
+  footer: {
+    textAlign: 'center',
+    padding: '20px',
+    fontSize: '12px',
+    color: 'var(--light-text-color)',
+    backgroundColor: '#ffffff',
+    borderTop: '1px solid #eee',
+  }
 };
-

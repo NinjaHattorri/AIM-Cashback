@@ -47,8 +47,7 @@ export default function AdminLoginPage() {
     <div style={styles.pageContainer}>
       <header style={styles.headerBar}>
         <div style={styles.logoContainer}>
-          <span style={styles.logoTextMain}>AIM</span>
-          <span style={styles.logoTextSub}>FILAMENTS</span>
+          <img src="/Aim_LOGO.jpg" alt="AIM Filaments" style={styles.logoImage} />
         </div>
         <div style={styles.headerTagline}>ADMIN PORTAL</div>
       </header>
@@ -114,7 +113,7 @@ const styles = {
   },
   headerBar: {
     backgroundColor: '#ffffff',
-    padding: '15px 20px',
+    padding: '10px 20px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -123,20 +122,12 @@ const styles = {
   },
   logoContainer: {
     display: 'flex',
-    flexDirection: 'column',
-    lineHeight: '1',
+    alignItems: 'center',
   },
-  logoTextMain: {
-    fontSize: '24px',
-    fontWeight: '900',
-    color: 'var(--secondary-color)',
-    letterSpacing: '1px',
-  },
-  logoTextSub: {
-    fontSize: '10px',
-    fontWeight: '700',
-    color: 'var(--primary-color)',
-    letterSpacing: '3px',
+  logoImage: {
+    height: '45px',
+    width: 'auto',
+    objectFit: 'contain',
   },
   headerTagline: {
     fontSize: '12px',

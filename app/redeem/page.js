@@ -230,7 +230,6 @@ function RedeemForm() {
             <p style={{color: 'var(--light-text-color)'}}>Your reward is on its way</p>
             <p style={styles.cashbackAmount}>₹{finalCashbackAmount}</p>
             <p style={{fontSize: '0.9em', margin: '20px 0'}}>The amount has been initiated to your {paymentMethod === 'upi' ? 'UPI ID' : 'Bank Account'}.</p>
-            <button style={{...styles.button, backgroundColor: 'var(--secondary-color)'}} onClick={() => window.location.reload()}>Redeem Another Code</button>
           </div>
         );
       default:

@@ -1,7 +1,6 @@
 import dbConnect from '../../../../lib/dbConnect';
 import AdminUser from '../../../../models/AdminUser';
 import jwt from 'jsonwebtoken';
-import { setCookie } from 'cookies-next';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -30,19 +29,18 @@ export async function POST(request) {
     const token = jwt.sign(
       { isAdmin: true, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: '1d' } // Token expires in 1 day
+      { expiresIn: '1d' }
     );
 
     const response = NextResponse.json({ success: true, message: 'Login successful.' });
 
-    // Set the JWT in a secure, http-only cookie
-    setCookie('auth_token', token, {
-      req: request,
-      res: response,
+    // Set the JWT in a secure, http-only cookie using native Next.js App Router API
+    response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24, // 1 day
       path: '/',
+      sameSite: 'lax',
     });
 
     return response;

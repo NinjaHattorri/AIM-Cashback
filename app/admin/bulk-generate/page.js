@@ -9,6 +9,10 @@ export default function BulkGeneratePage() {
   // State for random generation
   const [numberOfCodes, setNumberOfCodes] = useState(10);
   const [randomExpiresAt, setRandomExpiresAt] = useState('');
+  const [cashbackType, setCashbackType] = useState('default'); // 'default', 'fixed', 'range'
+  const [cashbackAmount, setCashbackAmount] = useState(10);
+  const [cashbackMin, setCashbackMin] = useState(5);
+  const [cashbackMax, setCashbackMax] = useState(500);
   const [generatedCodesList, setGeneratedCodesList] = useState([]);
   
   // State for custom code import
@@ -33,6 +37,10 @@ export default function BulkGeneratePage() {
         body: JSON.stringify({ 
           count: parseInt(numberOfCodes, 10),
           expiresAt: randomExpiresAt || null,
+          cashbackType,
+          cashbackAmount: cashbackType === 'fixed' ? Number(cashbackAmount) : null,
+          cashbackMin: cashbackType === 'range' ? Number(cashbackMin) : null,
+          cashbackMax: cashbackType === 'range' ? Number(cashbackMax) : null,
         }),
       });
 
@@ -176,6 +184,40 @@ export default function BulkGeneratePage() {
                 <label htmlFor="numberOfCodes" style={styles.label}>Quantity</label>
                 <input type="number" id="numberOfCodes" value={numberOfCodes} onChange={(e) => setNumberOfCodes(e.target.value)} min="1" max="10000" required style={styles.input} />
               </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Cashback Configuration</label>
+                <select 
+                    value={cashbackType} 
+                    onChange={(e) => setCashbackType(e.target.value)} 
+                    style={styles.input}
+                >
+                    <option value="default">Default Random (₹5 - ₹500)</option>
+                    <option value="fixed">Specific Fixed Amount</option>
+                    <option value="range">Custom Random Range</option>
+                </select>
+              </div>
+
+              {cashbackType === 'fixed' && (
+                <div style={styles.formGroup}>
+                    <label htmlFor="cashbackAmount" style={styles.label}>Fixed Amount (₹)</label>
+                    <input type="number" id="cashbackAmount" value={cashbackAmount} onChange={(e) => setCashbackAmount(e.target.value)} min="1" required style={styles.input} />
+                </div>
+              )}
+
+              {cashbackType === 'range' && (
+                <div style={{display: 'flex', gap: '15px', marginBottom: '20px'}}>
+                    <div style={{flex: 1}}>
+                        <label htmlFor="cashbackMin" style={styles.label}>Min (₹)</label>
+                        <input type="number" id="cashbackMin" value={cashbackMin} onChange={(e) => setCashbackMin(e.target.value)} min="1" required style={styles.input} />
+                    </div>
+                    <div style={{flex: 1}}>
+                        <label htmlFor="cashbackMax" style={styles.label}>Max (₹)</label>
+                        <input type="number" id="cashbackMax" value={cashbackMax} onChange={(e) => setCashbackMax(e.target.value)} min="1" required style={styles.input} />
+                    </div>
+                </div>
+              )}
+
               <div style={styles.formGroup}>
                 <label htmlFor="randomExpiresAt" style={styles.label}>Expiry Date (Optional)</label>
                 <input type="date" id="randomExpiresAt" value={randomExpiresAt} onChange={(e) => setRandomExpiresAt(e.target.value)} style={styles.input} />

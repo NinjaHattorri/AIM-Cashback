@@ -26,7 +26,22 @@ This file serves as the long-term memory for all Gemini CLI sessions within this
 * Dashboard for tracking: Codes generated, Redemption status (Redeemed vs Pending), Total cashback paid.
 
 ## Current Progress
-* Node.js is installed.
-* MongoDB Atlas dedicated user is created and connected via `MONGODB_URI` in `.env.local`.
-* The `lib/dbConnect.js` utility file has been created.
-* **Next Task:** Define the Mongoose Schemas for `Codes` and `Redemptions`.
+* Node.js environment is set up.
+* MongoDB Atlas is connected via `MONGODB_URI` in `.env.local`.
+* **Mongoose Schemas:** `AdminUser`, `Code`, `Otp`, and `Redemption` are fully defined.
+* **Redemption Flow:**
+    * `/api/validate-code`: Implemented with rate limiting.
+    * `/api/send-otp` & `/api/verify-otp`: Implemented with rate limiting and JWT session management.
+    * `/api/redeem-payout`: Implemented with support for pre-set or range-based cashback amounts.
+* **Admin System:**
+    * Secure login with JWT and bcrypt password hashing.
+    * Dashboard for tracking generated/redeemed codes and total payouts.
+    * **Configurable Cashback:** Bulk generation now supports Fixed Amount, Custom Range, or Default Range.
+    * **Enhanced Tools:** Inventory and Payouts pages now support Search and Status Filtering.
+    * **Security:** Rate limiting implemented on public-facing endpoints.
+    * **Automation:** Maintenance API `/api/cron/update-expired-codes` created to update past-due code statuses.
+
+## Next Task
+* **Payment Gateway Integration:** Integrate Cashfree/RazorpayX Payouts once the API credentials and documentation are available.
+* **Analytics/Reporting:** Add data export (CSV/Excel) for redemptions and more detailed charts on the dashboard.
+* **Mobile UI Polish:** Fine-tune the redemption mobile experience for edge cases.

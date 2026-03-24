@@ -2,7 +2,8 @@ import dbConnect from '../../../lib/dbConnect';
 import Code from '../../../models/Code';
 import Redemption from '../../../models/Redemption';
 import { NextResponse } from 'next/server';
-import crypto from 'crypto'; // Import the crypto module
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 // Function to generate a random amount within a range using crypto.randomInt
 function getRandomCashback(min, max) {
@@ -15,16 +16,40 @@ export async function POST(request) {
   await dbConnect();
 
   try {
-    const { 
-      code, 
-      buyerName, 
-      buyerMobile, 
-      paymentMethod, 
-      upiId, 
-      bankDetails 
+    // --- SECURITY: Verify OTP session cookie ---
+    // This ensures the user completed OTP verification before reaching payout.
+    const otpSessionToken = request.cookies.get('otp_session')?.value;
+    if (!otpSessionToken) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: OTP verification required before redemption.' }, { status: 401 });
+    }
+
+    let otpSession;
+    try {
+      otpSession = jwt.verify(otpSessionToken, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json({ success: false, message: 'Unauthorized: OTP session has expired or is invalid. Please verify OTP again.' }, { status: 401 });
+    }
+
+    if (!otpSession.verified) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Invalid OTP session.' }, { status: 401 });
+    }
+    // -------------------------------------------
+
+    const {
+      code,
+      buyerName,
+      buyerMobile,
+      paymentMethod,
+      upiId,
+      bankDetails
     } = await request.json();
 
-    // 1. Find the code
+    // Confirm the OTP session mobile matches the submitting user's mobile
+    if (otpSession.mobile !== buyerMobile) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: OTP was verified for a different mobile number.' }, { status: 401 });
+    }
+
+    // 1. Find and validate the code
     const foundCode = await Code.findOne({ code });
 
     if (!foundCode) {
@@ -39,25 +64,35 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'This code has expired.' }, { status: 400 });
     }
 
-    // 2. Generate random cashback amount using crypto.randomInt
-    const cashbackAmount = getRandomCashback(5, 500);
+    // Check expiresAt date even if status wasn't explicitly updated
+    if (foundCode.expiresAt && foundCode.expiresAt < new Date()) {
+      return NextResponse.json({ success: false, message: 'This code has expired.' }, { status: 400 });
+    }
 
-    // 3. CRITICAL STEP: Mark code as redeemed and store cashback amount
-    foundCode.status = 'redeemed';
-    foundCode.redeemedAt = new Date();
-    foundCode.cashbackAmount = cashbackAmount; // Store the determined amount
-    await foundCode.save();
+    // 2. Determine cashback amount
+    let cashbackAmount;
+    if (foundCode.cashbackAmount && foundCode.cashbackAmount > 0) {
+      // Use pre-configured fixed amount
+      cashbackAmount = foundCode.cashbackAmount;
+    } else if (foundCode.minCashback !== undefined && foundCode.maxCashback !== undefined) {
+      // Use custom range
+      cashbackAmount = getRandomCashback(foundCode.minCashback, foundCode.maxCashback);
+    } else {
+      // Fallback to default range (₹5 - ₹500)
+      cashbackAmount = getRandomCashback(5, 500);
+    }
 
-    // 4. Simulate payout and generate a transaction ID
+    // 3. Simulate payout and generate a transaction ID
     const payoutTransactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const payoutStatus = 'initiated'; // In a real system, this would come from the payment gateway
+    const payoutStatus = 'initiated';
 
-    // 5. Create a new Redemption entry
+    // 4. FIXED ORDER: Create the Redemption record FIRST.
+    // This way, if the save below fails, we have a record and can investigate/retry.
     const redemption = await Redemption.create({
       codeId: foundCode._id,
       buyerName,
       buyerMobile,
-      cashbackAmount, // Store the determined amount
+      cashbackAmount,
       upiId: paymentMethod === 'upi' ? upiId : undefined,
       bankDetails: paymentMethod === 'bank' ? bankDetails : undefined,
       payoutStatus,
@@ -65,13 +100,30 @@ export async function POST(request) {
       redeemedAt: new Date(),
     });
 
-    // Link the redemption to the code
-    foundCode.redeemedBy = redemption._id;
-    await foundCode.save();
+    // 5. CRITICAL STEP: Mark "code" as redeemed AFTER Redemption record exists, using optimistic locking.
+    const updatedCode = await Code.findOneAndUpdate(
+      { _id: foundCode._id, status: foundCode.status }, // Ensure status hasn't changed since we read it
+      {
+        $set: {
+          status: 'redeemed',
+          redeemedAt: new Date(),
+          cashbackAmount: cashbackAmount,
+          redeemedBy: redemption._id
+        }
+      },
+      { new: true }
+    );
 
+    if (!updatedCode) {
+      // Race condition caught: Code status changed while we were processing.
+      // Rollback the Redemption record.
+      await Redemption.findByIdAndDelete(redemption._id);
+      return NextResponse.json({ success: false, message: 'This code is currently being processed or was just redeemed.' }, { status: 409 });
+    }
 
-    return NextResponse.json({ 
-        success: true, 
+    // 6. Build success response and clear the OTP session cookie
+    const response = NextResponse.json({
+        success: true,
         message: 'Cashback redemption successful and payout initiated.',
         data: {
             cashbackAmount,
@@ -80,10 +132,13 @@ export async function POST(request) {
         }
     }, { status: 200 });
 
+    // Delete otp_session to prevent replay attacks
+    response.cookies.delete('otp_session');
+
+    return response;
+
   } catch (error) {
     console.error('Redeem Payout Error:', error);
-    // If something goes wrong after marking the code as redeemed,
-    // you might want to implement a rollback or a manual review process.
     return NextResponse.json({ success: false, message: 'Server error during cashback redemption.' }, { status: 500 });
   }
 }

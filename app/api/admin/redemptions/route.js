@@ -15,15 +15,17 @@ export async function GET(request) {
     
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
+    const status = searchParams.get('status');
     
     let filter = {};
     if (query) {
-      filter = {
-        $or: [
+      filter.$or = [
           { buyerName: { $regex: query, $options: 'i' } },
           { buyerMobile: { $regex: query, $options: 'i' } },
-        ]
-      };
+      ];
+    }
+    if (status && status !== 'all') {
+      filter.payoutStatus = status;
     }
 
     let redemptions = await Redemption.find(filter).populate('codeId').sort({ redeemedAt: -1 });
@@ -49,9 +51,10 @@ export async function GET(request) {
     return NextResponse.json({ success: true, data: redemptions }, { status: 200 });
 
   } catch (error) {
-    return new NextResponse(
-      JSON.stringify({ success: false, message: error.message }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    if (error.message?.includes('Auth token') || error.message?.includes('not an admin') || error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+    }
+    console.error('Redemptions Fetch Error:', error);
+    return NextResponse.json({ success: false, message: 'Server error fetching redemptions.' }, { status: 500 });
   }
 }

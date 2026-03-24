@@ -1,15 +1,11 @@
-import { deleteCookie } from 'cookies-next';
 import { NextResponse } from 'next/server';
 
-export async function POST(request) {
+export async function POST() {
   try {
     const response = NextResponse.json({ success: true, message: 'Logout successful.' });
-    
-    // Delete the auth token cookie
-    deleteCookie('auth_token', {
-      req: request,
-      res: response,
-    });
+
+    // Delete the auth token cookie using native Next.js App Router API
+    response.cookies.delete('auth_token');
 
     return response;
   } catch (error) {

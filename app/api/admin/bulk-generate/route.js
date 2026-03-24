@@ -22,7 +22,7 @@ export async function POST(request) {
 
     // Original Route Logic
     await dbConnect();
-    const { count, expiresAt } = await request.json();
+    const { count, expiresAt, cashbackType, cashbackAmount, cashbackMin, cashbackMax } = await request.json();
 
     if (!count || count <= 0) {
       return NextResponse.json({ success: false, message: 'A valid code count is required.' }, { status: 400 });
@@ -51,6 +51,16 @@ export async function POST(request) {
         if (expiresAt) {
             codeDocument.expiresAt = new Date(expiresAt);
         }
+
+        // --- Handle Configurable Cashback ---
+        if (cashbackType === 'fixed') {
+            codeDocument.cashbackAmount = Number(cashbackAmount);
+        } else if (cashbackType === 'range') {
+            codeDocument.minCashback = Number(cashbackMin);
+            codeDocument.maxCashback = Number(cashbackMax);
+        }
+        // If cashbackType is 'default', we set nothing, and payout route will fallback.
+        // ------------------------------------
 
         newCodes.push(codeDocument);
     }

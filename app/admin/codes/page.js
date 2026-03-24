@@ -38,6 +38,7 @@ function QRModal({ code, onClose }) {
 export default function AdminCodesPage() {
   const [codes, setCodes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,10 +48,10 @@ export default function AdminCodesPage() {
   
   const router = useRouter();
 
-  const fetchCodes = async (query = '') => {
+  const fetchCodes = async (query = '', status = 'all') => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/codes?q=${query}`);
+      const response = await fetch(`/api/admin/codes?q=${query}&status=${status}`);
       const data = await response.json();
 
       if (data.success) {
@@ -70,11 +71,11 @@ export default function AdminCodesPage() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchCodes(searchQuery);
+      fetchCodes(searchQuery, statusFilter);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter]);
 
   const handleEditClick = (codeItem) => {
     setEditingId(codeItem._id);
@@ -161,13 +162,25 @@ export default function AdminCodesPage() {
         <h1 style={styles.pageTitle}>Code Inventory</h1>
 
         <div style={styles.searchContainer}>
-          <input
-            type="text"
-            placeholder="🔍 Search codes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={styles.searchInput}
-          />
+          <div style={{display: 'flex', gap: '15px'}}>
+            <input
+                type="text"
+                placeholder="🔍 Search codes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{...styles.searchInput, flex: 2, marginBottom: 0}}
+            />
+            <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)} 
+                style={{...styles.searchInput, flex: 1, marginBottom: 0}}
+            >
+                <option value="all">All Statuses</option>
+                <option value="generated">Generated</option>
+                <option value="redeemed">Redeemed</option>
+                <option value="expired">Expired</option>
+            </select>
+          </div>
         </div>
         
         {message && (

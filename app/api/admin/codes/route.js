@@ -3,6 +3,16 @@ import Code from '../../../../models/Code';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
+// Helper: check if an error is an auth failure
+function isAuthError(error) {
+  return (
+    error.message?.includes('Auth token') ||
+    error.message?.includes('not an admin') ||
+    error.name === 'JsonWebTokenError' ||
+    error.name === 'TokenExpiredError'
+  );
+}
+
 // GET: Fetch all codes or search for specific ones
 export async function GET(request) {
   try {
@@ -12,23 +22,28 @@ export async function GET(request) {
     if (!decoded.isAdmin) throw new Error('User is not an admin');
 
     await dbConnect();
-    
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
-    
+    const status = searchParams.get('status');
+
     let filter = {};
     if (query) {
-      filter = { code: { $regex: query, $options: 'i' } };
+      filter.code = { $regex: query, $options: 'i' };
+    }
+    if (status && status !== 'all') {
+      filter.status = status;
     }
 
     const codes = await Code.find(filter).sort({ generatedAt: -1 });
     return NextResponse.json({ success: true, data: codes }, { status: 200 });
 
   } catch (error) {
-    return new NextResponse(
-      JSON.stringify({ success: false, message: error.message }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    if (isAuthError(error)) {
+      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+    }
+    console.error('Fetch Codes Error:', error);
+    return NextResponse.json({ success: false, message: 'Server error fetching codes.' }, { status: 500 });
   }
 }
 
@@ -47,9 +62,19 @@ export async function PATCH(request) {
       return NextResponse.json({ success: false, message: 'Code ID is required.' }, { status: 400 });
     }
 
+    // Build update object dynamically — only include fields that were actually sent
+    const updateFields = {};
+    if (status !== undefined) updateFields.status = status;
+    if (cashbackAmount !== undefined) updateFields.cashbackAmount = cashbackAmount;
+    if (expiresAt !== undefined) updateFields.expiresAt = expiresAt;
+
+    if (Object.keys(updateFields).length === 0) {
+      return NextResponse.json({ success: false, message: 'No fields provided to update.' }, { status: 400 });
+    }
+
     const updatedCode = await Code.findByIdAndUpdate(
       id,
-      { status, cashbackAmount, expiresAt },
+      { $set: updateFields },
       { new: true, runValidators: true }
     );
 
@@ -60,8 +85,11 @@ export async function PATCH(request) {
     return NextResponse.json({ success: true, data: updatedCode }, { status: 200 });
 
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+    }
     console.error('Update Code Error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Server error updating code.' }, { status: 500 });
   }
 }
 
@@ -89,7 +117,10 @@ export async function DELETE(request) {
     return NextResponse.json({ success: true, message: 'Code deleted successfully.' }, { status: 200 });
 
   } catch (error) {
+    if (isAuthError(error)) {
+      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+    }
     console.error('Delete Code Error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Server error deleting code.' }, { status: 500 });
   }
 }

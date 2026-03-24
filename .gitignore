@@ -30,6 +30,11 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+Credentials.env.local
+Credentials.env
+gemini-conversation-*.json
+*.pdf
+
 
 # IDE files
 .vscode/

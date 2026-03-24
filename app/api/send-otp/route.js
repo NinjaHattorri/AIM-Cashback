@@ -1,8 +1,23 @@
 import dbConnect from '../../../lib/dbConnect';
 import Otp from '../../../models/Otp';
 import { NextResponse } from 'next/server';
+import rateLimit from '../../../lib/rateLimit';
+
+const limiter = rateLimit({
+  limit: 3, // 3 requests
+  windowMs: 60 * 1000, // per 60 seconds
+});
 
 export async function POST(request) {
+  const response = new NextResponse();
+  const ip = request.headers.get('x-forwarded-for') || 'anonymous';
+
+  try {
+    await limiter.check(response, ip);
+  } catch {
+    return NextResponse.json({ success: false, message: 'Too many requests. Please try again in a minute.' }, { status: 429 });
+  }
+
   await dbConnect();
 
   try {

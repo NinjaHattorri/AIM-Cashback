@@ -33,9 +33,11 @@ export async function GET(request) {
     return NextResponse.json({ success: true, data: stats }, { status: 200 });
 
   } catch (error) {
-    return new NextResponse(
-      JSON.stringify({ success: false, message: `Authentication failed: ${error.message}` }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    // Return 401 only for auth-related errors; all others are 500
+    if (error.message?.includes('Auth token') || error.message?.includes('not an admin') || error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+    }
+    console.error('Stats Error:', error);
+    return NextResponse.json({ success: false, message: 'Server error fetching stats.' }, { status: 500 });
   }
 }

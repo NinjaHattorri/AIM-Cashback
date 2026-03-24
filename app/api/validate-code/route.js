@@ -1,8 +1,23 @@
 import dbConnect from '../../../lib/dbConnect';
 import Code from '../../../models/Code';
 import { NextResponse } from 'next/server';
+import rateLimit from '../../../lib/rateLimit';
+
+const limiter = rateLimit({
+  limit: 5,
+  windowMs: 60 * 1000,
+});
 
 export async function POST(request) {
+  const response = new NextResponse();
+  const ip = request.headers.get('x-forwarded-for') || 'anonymous';
+
+  try {
+    await limiter.check(response, ip);
+  } catch {
+    return NextResponse.json({ success: false, message: 'Too many validation attempts. Please try again in a minute.' }, { status: 429 });
+  }
+
   await dbConnect();
 
   try {
@@ -25,17 +40,17 @@ export async function POST(request) {
     if (foundCode.status === 'expired') {
       return NextResponse.json({ success: false, message: 'This code has expired.' }, { status: 400 });
     }
-    
-    // As per GEMINI.md, status is not changed here.
-    // It's only marked 'redeemed' just before payout.
-    // We can, however, move it to 'pending_redemption'
-    
-    foundCode.status = 'pending_redemption';
-    await foundCode.save();
 
+    // Check expiresAt date even if status hasn't been explicitly updated
+    if (foundCode.expiresAt && foundCode.expiresAt < new Date()) {
+      return NextResponse.json({ success: false, message: 'This code has expired.' }, { status: 400 });
+    }
 
-    return NextResponse.json({ 
-        success: true, 
+    // IMPORTANT: Per GEMINI.md, code status is NOT changed here.
+    // It is only marked 'redeemed' immediately before the payout in /api/redeem-payout.
+
+    return NextResponse.json({
+        success: true,
         message: 'Code is valid.'
     }, { status: 200 });
 

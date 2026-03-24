@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const CodeSchema = new mongoose.Schema({
     code: {
@@ -10,7 +10,15 @@ const CodeSchema = new mongoose.Schema({
     },
     cashbackAmount: {
         type: Number,
-        default: 0 // Amount will be set upon redemption
+        required: false // Amount will be set upon redemption or pre-set during generation
+    },
+    minCashback: {
+        type: Number,
+        required: false
+    },
+    maxCashback: {
+        type: Number,
+        required: false
     },
     status: {
         type: String,
@@ -26,7 +34,7 @@ const CodeSchema = new mongoose.Schema({
         required: false // Optional expiration
     },
     redeemedBy: {
-        type: mongoose.Schema.ObjectId,
+        type: mongoose.Schema.Types.ObjectId, // Fixed: was Schema.ObjectId
         ref: 'Redemption',
         required: false
     },
@@ -36,4 +44,4 @@ const CodeSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.models.Code || mongoose.model('Code', CodeSchema);
+export default mongoose.models.Code || mongoose.model('Code', CodeSchema);

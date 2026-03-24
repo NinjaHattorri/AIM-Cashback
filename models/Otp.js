@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const OtpSchema = new mongoose.Schema({
     mobile: {
@@ -18,4 +18,4 @@ const OtpSchema = new mongoose.Schema({
     },
 });
 
-module.exports = mongoose.models.Otp || mongoose.model('Otp', OtpSchema);
+export default mongoose.models.Otp || mongoose.model('Otp', OtpSchema);

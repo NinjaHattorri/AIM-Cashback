@@ -1,6 +1,7 @@
 import dbConnect from '../../../lib/dbConnect';
 import Otp from '../../../models/Otp';
 import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
 export async function POST(request) {
   await dbConnect();
@@ -26,10 +27,29 @@ export async function POST(request) {
     // OTP is correct, delete it to prevent reuse
     await Otp.deleteOne({ _id: foundOtp._id });
 
-    return NextResponse.json({ 
-        success: true, 
+    // Issue a short-lived OTP session token so redeem-payout can verify
+    // that the user completed OTP before reaching the payout step.
+    const otpSessionToken = jwt.sign(
+      { mobile, verified: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const response = NextResponse.json({
+        success: true,
         message: 'OTP verified successfully.'
     }, { status: 200 });
+
+    // Set as httpOnly cookie so it can't be stolen via JS
+    response.cookies.set('otp_session', otpSessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 15, // 15 minutes
+      path: '/',
+      sameSite: 'strict',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Verify OTP Error:', error);

@@ -6,15 +6,16 @@ import { useRouter } from 'next/navigation';
 export default function AdminRedemptionsPage() {
   const [redemptions, setRedemptions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const fetchRedemptions = async (query = '') => {
+  const fetchRedemptions = async (query = '', status = 'all') => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/redemptions?q=${query}`);
+      const response = await fetch(`/api/admin/redemptions?q=${query}&status=${status}`);
       const data = await response.json();
 
       if (data.success) {
@@ -34,11 +35,11 @@ export default function AdminRedemptionsPage() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchRedemptions(searchQuery);
+      fetchRedemptions(searchQuery, statusFilter);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -77,13 +78,26 @@ export default function AdminRedemptionsPage() {
         <h1 style={styles.pageTitle}>Redemption Logs</h1>
 
         <div style={styles.searchContainer}>
-          <input
-            type="text"
-            placeholder="🔍 Search redemptions (Name, Mobile, or Code)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={styles.searchInput}
-          />
+          <div style={{display: 'flex', gap: '15px'}}>
+            <input
+                type="text"
+                placeholder="🔍 Search redemptions (Name, Mobile, or Code)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{...styles.searchInput, flex: 2, marginBottom: 0}}
+            />
+            <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)} 
+                style={{...styles.searchInput, flex: 1, marginBottom: 0}}
+            >
+                <option value="all">All Payout Status</option>
+                <option value="initiated">Initiated</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+                <option value="pending">Pending</option>
+            </select>
+          </div>
         </div>
         
         {message && (

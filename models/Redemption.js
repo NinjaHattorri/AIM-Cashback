@@ -53,6 +53,21 @@ const RedemptionSchema = new mongoose.Schema({
         required: false,
         trim: true
     },
+    payoutReferenceId: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    utr: {
+        type: String,
+        required: false,
+        trim: true
+    },
+    errorDetails: {
+        type: String,
+        required: false,
+        trim: true
+    },
     redeemedAt: {
         type: Date,
         default: Date.now

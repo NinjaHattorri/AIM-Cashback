@@ -23,16 +23,16 @@ This file serves as the long-term memory for all Gemini CLI sessions within this
 ## Admin Requirements
 * Secure login.
 * Bulk code generation (with fixed or range-based cashback amounts).
-* Dashboard for tracking: Codes generated, Redemption status (Redeemed vs Pending), Total cashback paid.
+* **Payments:** Mediator-based Payouts (UPI/IMPS) integrated via Cashfree.
 
 ## Current Progress
 * Node.js environment is set up.
 * MongoDB Atlas is connected via `MONGODB_URI` in `.env.local`.
-* **Mongoose Schemas:** `AdminUser`, `Code`, `Otp`, and `Redemption` are fully defined.
+* **Mongoose Schemas:** `AdminUser`, `Code`, `Otp`, and `Redemption` are fully defined and updated for payment tracking.
 * **Redemption Flow:**
     * `/api/validate-code`: Implemented with rate limiting.
     * `/api/send-otp` & `/api/verify-otp`: Implemented with rate limiting and JWT session management.
-    * `/api/redeem-payout`: Implemented with support for pre-set or range-based cashback amounts.
+    * `/api/redeem-payout`: Fully integrated with **Cashfree Payouts (v2 API)** for real-time UPI/Bank transfers.
 * **Admin System:**
     * Secure login with JWT and bcrypt password hashing.
     * Dashboard for tracking generated/redeemed codes and total payouts.
@@ -42,6 +42,6 @@ This file serves as the long-term memory for all Gemini CLI sessions within this
     * **Automation:** Maintenance API `/api/cron/update-expired-codes` created to update past-due code statuses.
 
 ## Next Task
-* **Payment Gateway Integration:** Integrate Cashfree/RazorpayX Payouts once the API credentials and documentation are available.
+* **Payout Status Webhooks:** Implement a webhook listener to update `Redemption` records automatically when Cashfree confirms payment success/failure.
 * **Analytics/Reporting:** Add data export (CSV/Excel) for redemptions and more detailed charts on the dashboard.
 * **Mobile UI Polish:** Fine-tune the redemption mobile experience for edge cases.

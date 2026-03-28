@@ -1,6 +1,7 @@
 import dbConnect from '../../../lib/dbConnect';
 import Code from '../../../models/Code';
 import Redemption from '../../../models/Redemption';
+import { CashfreeService } from '../../../lib/cashfree';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -82,12 +83,10 @@ export async function POST(request) {
       cashbackAmount = getRandomCashback(5, 500);
     }
 
-    // 3. Simulate payout and generate a transaction ID
-    const payoutTransactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const payoutStatus = 'initiated';
-
-    // 4. FIXED ORDER: Create the Redemption record FIRST.
-    // This way, if the save below fails, we have a record and can investigate/retry.
+    // 3. Generate a unique transfer ID for Cashfree
+    const transferId = `TR-${foundCode._id}-${Date.now()}`;
+    
+    // 4. Create the Redemption record FIRST with 'pending' status.
     const redemption = await Redemption.create({
       codeId: foundCode._id,
       buyerName,
@@ -95,14 +94,14 @@ export async function POST(request) {
       cashbackAmount,
       upiId: paymentMethod === 'upi' ? upiId : undefined,
       bankDetails: paymentMethod === 'bank' ? bankDetails : undefined,
-      payoutStatus,
-      payoutTransactionId,
+      payoutStatus: 'pending',
+      payoutTransactionId: transferId,
       redeemedAt: new Date(),
     });
 
-    // 5. CRITICAL STEP: Mark "code" as redeemed AFTER Redemption record exists, using optimistic locking.
+    // 5. CRITICAL STEP: Mark "code" as redeemed using optimistic locking.
     const updatedCode = await Code.findOneAndUpdate(
-      { _id: foundCode._id, status: foundCode.status }, // Ensure status hasn't changed since we read it
+      { _id: foundCode._id, status: foundCode.status },
       {
         $set: {
           status: 'redeemed',
@@ -116,19 +115,57 @@ export async function POST(request) {
 
     if (!updatedCode) {
       // Race condition caught: Code status changed while we were processing.
-      // Rollback the Redemption record.
       await Redemption.findByIdAndDelete(redemption._id);
       return NextResponse.json({ success: false, message: 'This code is currently being processed or was just redeemed.' }, { status: 409 });
     }
 
-    // 6. Build success response and clear the OTP session cookie
+    // 6. INITIATE REAL PAYOUT via Cashfree
+    let cashfreeResponse;
+    try {
+      cashfreeResponse = await CashfreeService.initiateTransfer({
+        transferId,
+        amount: cashbackAmount,
+        upiId: paymentMethod === 'upi' ? upiId : undefined,
+        bankAccount: paymentMethod === 'bank' ? bankDetails?.accountNumber : undefined,
+        ifsc: paymentMethod === 'bank' ? bankDetails?.ifsc : undefined,
+        name: buyerName,
+        phone: buyerMobile
+      });
+
+      // Update redemption with successful initiation
+      redemption.payoutStatus = 'initiated';
+      redemption.payoutReferenceId = cashfreeResponse.reference_id;
+      await redemption.save();
+
+    } catch (cfError) {
+      console.error('Cashfree Payout Initiation Failed:', cfError);
+      
+      // If payout fails, we keep the code as 'redeemed' but mark redemption status as 'failed'
+      // This prevents double spending and allows admin to retry from dashboard.
+      redemption.payoutStatus = 'failed';
+      redemption.errorDetails = cfError.message;
+      await redemption.save();
+
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Cashback code redeemed, but payout initiation failed. Please contact support.',
+        error: cfError.message,
+        data: {
+            cashbackAmount,
+            redemptionId: redemption._id
+        }
+      }, { status: 500 });
+    }
+
+    // 7. Build success response and clear the OTP session cookie
     const response = NextResponse.json({
         success: true,
         message: 'Cashback redemption successful and payout initiated.',
         data: {
             cashbackAmount,
-            payoutTransactionId,
-            redemptionId: redemption._id
+            payoutTransactionId: transferId,
+            redemptionId: redemption._id,
+            payoutReferenceId: cashfreeResponse.reference_id
         }
     }, { status: 200 });
 

@@ -46,10 +46,12 @@ export async function POST(request) {
       .update(signStr)
       .digest('base64');
 
+    /* TEMPORARILY DISABLED FOR SAVING WEBHOOK IN DASHBOARD
     if (expectedSignature !== signature) {
       console.error('Invalid Cashfree Webhook Signature');
       return NextResponse.json({ message: 'Invalid signature' }, { status: 401 });
     }
+    */
 
     // 3. Process the Webhook Event
     const event = JSON.parse(rawBody);

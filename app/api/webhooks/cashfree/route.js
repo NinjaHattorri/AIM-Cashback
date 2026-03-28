@@ -6,21 +6,36 @@ import crypto from 'crypto';
 
 export async function POST(request) {
   try {
+    // Log all headers for debugging
+    const allHeaders = {};
+    request.headers.forEach((value, key) => {
+      allHeaders[key] = value;
+    });
+    console.log('Incoming Webhook Headers:', JSON.stringify(allHeaders));
+
     // 1. Get raw body for signature verification
     const rawBody = await request.text();
-    const signature = request.headers.get('x-webhook-signature');
-    const timestamp = request.headers.get('x-webhook-timestamp');
+    
+    // Check for both v2 and v1 header names
+    const signature = request.headers.get('x-webhook-signature') || request.headers.get('x-cf-signature');
+    const timestamp = request.headers.get('x-webhook-timestamp') || request.headers.get('x-cf-timestamp');
     const secretKey = process.env.CASHFREE_CLIENT_SECRET;
 
     if (!signature || !timestamp || !secretKey) {
       console.error('Webhook Error: Missing required components', {
         hasSignature: !!signature,
         hasTimestamp: !!timestamp,
-        hasSecretKey: !!secretKey
+        hasSecretKey: !!secretKey,
+        headersReceived: Object.keys(allHeaders)
       });
       return NextResponse.json({ 
         message: 'Missing webhook headers or secret key',
-        debug: { signature: !!signature, timestamp: !!timestamp, secretKey: !!secretKey }
+        debug: { 
+          signature: !!signature, 
+          timestamp: !!timestamp, 
+          secretKey: !!secretKey,
+          availableHeaders: Object.keys(allHeaders)
+        }
       }, { status: 400 });
     }
 

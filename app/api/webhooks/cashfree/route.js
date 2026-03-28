@@ -13,7 +13,15 @@ export async function POST(request) {
     const secretKey = process.env.CASHFREE_CLIENT_SECRET;
 
     if (!signature || !timestamp || !secretKey) {
-      return NextResponse.json({ message: 'Missing webhook headers or secret key' }, { status: 400 });
+      console.error('Webhook Error: Missing required components', {
+        hasSignature: !!signature,
+        hasTimestamp: !!timestamp,
+        hasSecretKey: !!secretKey
+      });
+      return NextResponse.json({ 
+        message: 'Missing webhook headers or secret key',
+        debug: { signature: !!signature, timestamp: !!timestamp, secretKey: !!secretKey }
+      }, { status: 400 });
     }
 
     // 2. Verify Cashfree Signature (HMAC-SHA256)

@@ -33,6 +33,31 @@ export default function AdminRedemptionsPage() {
     }
   };
 
+  const handleSyncStatus = async (id) => {
+    setMessage('Syncing with Cashfree...');
+    setIsError(false);
+    try {
+      const response = await fetch('/api/admin/redemptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage(`Sync Complete: ${data.message}`);
+        setIsError(false);
+        fetchRedemptions(searchQuery, statusFilter);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Sync Error:', error);
+      setMessage(`Sync Failed: ${error.message}`);
+      setIsError(true);
+    }
+  };
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchRedemptions(searchQuery, statusFilter);
@@ -134,7 +159,20 @@ export default function AdminRedemptionsPage() {
                         <div style={{fontSize: '0.85em', color: 'var(--light-text-color)'}}>{redemption.buyerMobile}</div>
                     </td>
                     <td style={styles.td}>{getPaymentInfo(redemption)}</td>
-                    <td style={styles.td}>{getStatusChip(redemption.payoutStatus)}</td>
+                    <td style={styles.td}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            {getStatusChip(redemption.payoutStatus)}
+                            {(redemption.payoutStatus === 'initiated' || redemption.payoutStatus === 'pending') && (
+                                <button 
+                                    onClick={() => handleSyncStatus(redemption._id)} 
+                                    style={styles.syncButton}
+                                    title="Sync status with Cashfree"
+                                >
+                                    Sync
+                                </button>
+                            )}
+                        </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -267,6 +305,17 @@ const styles = {
     color: '#fff',
     fontSize: '0.75em',
     fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  syncButton: {
+    padding: '4px 8px',
+    borderRadius: '4px',
+    backgroundColor: 'var(--secondary-color)',
+    color: 'white',
+    border: 'none',
+    fontSize: '0.7em',
+    fontWeight: '700',
+    cursor: 'pointer',
     textTransform: 'uppercase',
   },
   footer: {

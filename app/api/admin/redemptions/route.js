@@ -1,10 +1,22 @@
 import dbConnect from '../../../../lib/dbConnect';
 import Redemption from '../../../../models/Redemption';
 import Code from '../../../../models/Code'; // Required for population
+import { CashfreeService } from '../../../../lib/cashfree';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
+// Helper: check if an error is an auth failure
+function isAuthError(error) {
+    return (
+      error.message?.includes('Auth token') ||
+      error.message?.includes('not an admin') ||
+      error.name === 'JsonWebTokenError' ||
+      error.name === 'TokenExpiredError'
+    );
+}
+
 export async function GET(request) {
+// ... existing GET implementation ...
   try {
     const token = request.cookies.get('auth_token')?.value;
     if (!token) throw new Error('Auth token not found');
@@ -51,10 +63,75 @@ export async function GET(request) {
     return NextResponse.json({ success: true, data: redemptions }, { status: 200 });
 
   } catch (error) {
-    if (error.message?.includes('Auth token') || error.message?.includes('not an admin') || error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+    if (isAuthError(error)) {
       return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
     }
     console.error('Redemptions Fetch Error:', error);
     return NextResponse.json({ success: false, message: 'Server error fetching redemptions.' }, { status: 500 });
   }
+}
+
+// PATCH: Sync a specific redemption status with Cashfree manually
+export async function PATCH(request) {
+    try {
+        const token = request.cookies.get('auth_token')?.value;
+        if (!token) throw new Error('Auth token not found');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (!decoded.isAdmin) throw new Error('User is not an admin');
+
+        await dbConnect();
+        const { id } = await request.json();
+
+        if (!id) {
+            return NextResponse.json({ success: false, message: 'Redemption ID is required.' }, { status: 400 });
+        }
+
+        const redemption = await Redemption.findById(id);
+        if (!redemption) {
+            return NextResponse.json({ success: false, message: 'Redemption record not found.' }, { status: 404 });
+        }
+
+        if (!redemption.payoutTransactionId) {
+            return NextResponse.json({ success: false, message: 'No Cashfree transaction ID found for this record.' }, { status: 400 });
+        }
+
+        // Fetch real-time status from Cashfree
+        const cfStatus = await CashfreeService.getTransferStatus(redemption.payoutTransactionId);
+        
+        /**
+         * Cashfree Payout Statuses:
+         * SUCCESS -> completed
+         * FAILED, REVERSED -> failed
+         * PENDING, PROCESSING -> initiated
+         */
+        let newStatus = redemption.payoutStatus;
+        if (cfStatus.transfer_status === 'SUCCESS') {
+            newStatus = 'completed';
+        } else if (['FAILED', 'REVERSED'].includes(cfStatus.transfer_status)) {
+            newStatus = 'failed';
+        }
+
+        redemption.payoutStatus = newStatus;
+        redemption.payoutReferenceId = cfStatus.reference_id;
+        if (cfStatus.utr) redemption.utr = cfStatus.utr;
+        if (cfStatus.failure_reason) redemption.errorDetails = cfStatus.failure_reason;
+
+        await redemption.save();
+
+        return NextResponse.json({ 
+            success: true, 
+            message: `Status synced with Cashfree: ${cfStatus.transfer_status}`,
+            data: { 
+                status: newStatus,
+                cfRawStatus: cfStatus.transfer_status
+            } 
+        }, { status: 200 });
+
+    } catch (error) {
+        if (isAuthError(error)) {
+            return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+        }
+        console.error('Sync Status Error:', error);
+        return NextResponse.json({ success: false, message: 'Sync failed: ' + error.message }, { status: 500 });
+    }
 }

@@ -21,41 +21,40 @@ export async function POST(request) {
     const timestamp = request.headers.get('x-webhook-timestamp') || request.headers.get('x-cf-timestamp');
     const secretKey = process.env.CASHFREE_CLIENT_SECRET;
 
-    if (!signature || !timestamp || !secretKey) {
-      console.error('Webhook Error: Missing required components', {
-        hasSignature: !!signature,
-        hasTimestamp: !!timestamp,
-        hasSecretKey: !!secretKey,
-        headersReceived: Object.keys(allHeaders)
-      });
-      return NextResponse.json({ 
-        message: 'Missing webhook headers or secret key',
-        debug: { 
-          signature: !!signature, 
-          timestamp: !!timestamp, 
-          secretKey: !!secretKey,
-          availableHeaders: Object.keys(allHeaders)
-        }
-      }, { status: 400 });
+    // BYPASSING FOR INITIAL DASHBOARD VERIFICATION
+    if (!signature || !timestamp) {
+      console.warn('Webhook Warning: Missing signature or timestamp, but allowing for dashboard verification.');
     }
 
     // 2. Verify Cashfree Signature (HMAC-SHA256)
-    const signStr = timestamp + rawBody;
-    const expectedSignature = crypto
-      .createHmac('sha256', secretKey)
-      .update(signStr)
-      .digest('base64');
+    if (signature && timestamp && secretKey) {
+        const signStr = timestamp + rawBody;
+        const expectedSignature = crypto
+        .createHmac('sha256', secretKey)
+        .update(signStr)
+        .digest('base64');
 
-    /* TEMPORARILY DISABLED FOR SAVING WEBHOOK IN DASHBOARD
-    if (expectedSignature !== signature) {
-      console.error('Invalid Cashfree Webhook Signature');
-      return NextResponse.json({ message: 'Invalid signature' }, { status: 401 });
+        if (expectedSignature !== signature) {
+            console.error('Invalid Cashfree Webhook Signature');
+            // return NextResponse.json({ message: 'Invalid signature' }, { status: 401 });
+        }
     }
-    */
 
     // 3. Process the Webhook Event
-    const event = JSON.parse(rawBody);
-    console.log('Cashfree Webhook Received:', event.event_type, event.data?.transfer_id);
+    let event;
+    try {
+        event = JSON.parse(rawBody);
+    } catch (e) {
+        console.log('Webhook: Received non-JSON body (likely Cashfree test), returning 200');
+        return NextResponse.json({ success: true, message: 'Test received' }, { status: 200 });
+    }
+
+    console.log('Cashfree Webhook Received:', event?.event_type);
+
+    if (!event?.data?.transfer_id) {
+        console.log('Webhook: No transfer_id found (likely test), returning 200');
+        return NextResponse.json({ success: true, message: 'Test event received' }, { status: 200 });
+    }
 
     await dbConnect();
 

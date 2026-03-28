@@ -1,5 +1,5 @@
-import dbConnect from '../../../lib/dbConnect';
-import Code from '../../../models/Code';
+import dbConnect from '../../../../lib/dbConnect';
+import Code from '../../../../models/Code';
 import { NextResponse } from 'next/server';
 
 /**

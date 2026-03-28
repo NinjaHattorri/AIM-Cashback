@@ -98,21 +98,23 @@ export async function PATCH(request) {
         // Fetch real-time status from Cashfree
         const cfStatus = await CashfreeService.getTransferStatus(redemption.payoutTransactionId);
         
+        console.log('Cashfree Sync Response:', JSON.stringify(cfStatus));
+
         /**
-         * Cashfree Payout Statuses:
-         * SUCCESS -> completed
-         * FAILED, REVERSED -> failed
-         * PENDING, PROCESSING -> initiated
+         * Cashfree Payout Statuses (v2):
+         * status can be: SUCCESS, FAILED, PENDING, PROCESSING, REVERSED
          */
+        const currentStatus = cfStatus.status || cfStatus.transfer_status;
+        
         let newStatus = redemption.payoutStatus;
-        if (cfStatus.transfer_status === 'SUCCESS') {
+        if (currentStatus === 'SUCCESS') {
             newStatus = 'completed';
-        } else if (['FAILED', 'REVERSED'].includes(cfStatus.transfer_status)) {
+        } else if (['FAILED', 'REVERSED'].includes(currentStatus)) {
             newStatus = 'failed';
         }
 
         redemption.payoutStatus = newStatus;
-        redemption.payoutReferenceId = cfStatus.reference_id;
+        redemption.payoutReferenceId = cfStatus.reference_id || redemption.payoutReferenceId;
         if (cfStatus.utr) redemption.utr = cfStatus.utr;
         if (cfStatus.failure_reason) redemption.errorDetails = cfStatus.failure_reason;
 
@@ -120,10 +122,10 @@ export async function PATCH(request) {
 
         return NextResponse.json({ 
             success: true, 
-            message: `Status synced with Cashfree: ${cfStatus.transfer_status}`,
+            message: `Status synced with Cashfree: ${currentStatus}`,
             data: { 
                 status: newStatus,
-                cfRawStatus: cfStatus.transfer_status
+                cfRawStatus: currentStatus
             } 
         }, { status: 200 });
 

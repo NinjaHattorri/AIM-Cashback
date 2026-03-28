@@ -21,23 +21,21 @@ export async function POST(request) {
     const timestamp = request.headers.get('x-webhook-timestamp') || request.headers.get('x-cf-timestamp');
     const secretKey = process.env.CASHFREE_CLIENT_SECRET;
 
-    // BYPASSING FOR INITIAL DASHBOARD VERIFICATION
-    if (!signature || !timestamp) {
-      console.warn('Webhook Warning: Missing signature or timestamp, but allowing for dashboard verification.');
-    }
-
     // 2. Verify Cashfree Signature (HMAC-SHA256)
     if (signature && timestamp && secretKey) {
         const signStr = timestamp + rawBody;
         const expectedSignature = crypto
-        .createHmac('sha256', secretKey)
-        .update(signStr)
-        .digest('base64');
+            .createHmac('sha256', secretKey)
+            .update(signStr)
+            .digest('base64');
 
         if (expectedSignature !== signature) {
             console.error('Invalid Cashfree Webhook Signature');
-            // return NextResponse.json({ message: 'Invalid signature' }, { status: 401 });
+            return NextResponse.json({ message: 'Invalid signature' }, { status: 401 });
         }
+    } else {
+        // If headers are missing, we only allow it if it's a test event (no data)
+        console.warn('Webhook Warning: Missing signature or timestamp header.');
     }
 
     // 3. Process the Webhook Event
@@ -45,7 +43,7 @@ export async function POST(request) {
     try {
         event = JSON.parse(rawBody);
     } catch (e) {
-        console.log('Webhook: Received non-JSON body (likely Cashfree test), returning 200');
+        console.log('Webhook: Received non-JSON body (likely test), returning 200');
         return NextResponse.json({ success: true, message: 'Test received' }, { status: 200 });
     }
 

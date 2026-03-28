@@ -23,7 +23,8 @@ This file serves as the long-term memory for all Gemini CLI sessions within this
 ## Admin Requirements
 * Secure login.
 * Bulk code generation (with fixed or range-based cashback amounts).
-* **Payments:** Mediator-based Payouts (UPI/IMPS) integrated via Cashfree.
+* **Payments:** Mediator-based Payouts (UPI/IMPS) fully integrated via **Cashfree Payouts (v2 API)**.
+* **Automation:** Real-time payout status updates via **Webhooks** and manual **Sync Status** capability in Admin Logs.
 
 ## Current Progress
 * Node.js environment is set up.
@@ -33,15 +34,18 @@ This file serves as the long-term memory for all Gemini CLI sessions within this
     * `/api/validate-code`: Implemented with rate limiting.
     * `/api/send-otp` & `/api/verify-otp`: Implemented with rate limiting and JWT session management.
     * `/api/redeem-payout`: Fully integrated with **Cashfree Payouts (v2 API)** for real-time UPI/Bank transfers.
+* **Webhooks & Sync:**
+    * `/api/webhooks/cashfree`: Secure listener for automated status updates (Success/Failed).
+    * **Manual Sync**: Added a "Sync" button in Admin Redemption Logs to pull real-time status from Cashfree API.
 * **Admin System:**
     * Secure login with JWT and bcrypt password hashing.
     * Dashboard for tracking generated/redeemed codes and total payouts.
-    * **Configurable Cashback:** Bulk generation now supports Fixed Amount, Custom Range, or Default Range.
-    * **Enhanced Tools:** Inventory and Payouts pages now support Search and Status Filtering.
-    * **Security:** Rate limiting implemented on public-facing endpoints.
-    * **Automation:** Maintenance API `/api/cron/update-expired-codes` created to update past-due code statuses.
+    * **Configurable Cashback**: Bulk generation now supports Fixed Amount, Custom Range, or Default Range.
+* **Stability & Security:**
+    * Converted `lib/rateLimit.js` to pure ESM for **Turbopack** compatibility on Vercel.
+    * Implemented signature verification for Cashfree webhooks.
 
 ## Next Task
-* **Payout Status Webhooks:** Implement a webhook listener to update `Redemption` records automatically when Cashfree confirms payment success/failure.
-* **Analytics/Reporting:** Add data export (CSV/Excel) for redemptions and more detailed charts on the dashboard.
+* **Wallet Balance Display:** Add a real-time Cashfree Payouts wallet balance widget to the Admin Dashboard.
+* **Analytics & Reporting:** Add data export (CSV/Excel) for redemptions and more detailed charts.
 * **Mobile UI Polish:** Fine-tune the redemption mobile experience for edge cases.

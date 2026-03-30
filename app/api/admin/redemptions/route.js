@@ -122,7 +122,7 @@ export async function PATCH(request) {
 
         return NextResponse.json({ 
             success: true, 
-            message: `Status synced with Cashfree: ${currentStatus}`,
+            message: `Sync successful! Payout marked as '${newStatus}' (Raw Cashfree status: ${currentStatus})`,
             data: { 
                 status: newStatus,
                 cfRawStatus: currentStatus

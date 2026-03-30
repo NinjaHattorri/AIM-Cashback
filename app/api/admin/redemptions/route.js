@@ -109,7 +109,7 @@ export async function PATCH(request) {
         let newStatus = redemption.payoutStatus;
         if (currentStatus === 'SUCCESS') {
             newStatus = 'completed';
-        } else if (['FAILED', 'REVERSED'].includes(currentStatus)) {
+        } else if (['FAILED', 'REVERSED', 'ERROR'].includes(currentStatus)) {
             newStatus = 'failed';
         }
 
